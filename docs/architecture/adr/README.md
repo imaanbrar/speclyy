@@ -27,3 +27,4 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0006](0006-session-strategy.md) | Session strategy — cookie-based SSR via `@supabase/ssr` | Accepted |
 | [0007](0007-auth-data-model.md) | Auth data model and middleware gates | Accepted |
 | [0008](0008-orm.md) | ORM — Drizzle | Accepted |
+| [0009](0009-storage.md) | Object storage — Supabase Storage (migrate to R2 at $50/mo overage) | Accepted |
