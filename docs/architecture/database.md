@@ -183,7 +183,7 @@ CREATE INDEX global_products_fts_idx ON public.global_products
 ---
 
 ### `public.scrape_cache`
-Deduplicates scrape requests — same URL hit by multiple designers triggers one scrape.
+Deduplicates scrape requests — same URL hit by multiple designers triggers one scrape. Also serves as the primary failure log: every failed attempt is recorded here with a structured `error_type` so the admin can see which domains need fixes.
 
 ```sql
 CREATE TABLE public.scrape_cache (
@@ -192,13 +192,21 @@ CREATE TABLE public.scrape_cache (
   url                 text NOT NULL,
   status              text CHECK (status IN ('pending','success','failed')),
   extracted_data      jsonb,                  -- raw Claude output
-  error_message       text,
+  error_message       text,                  -- raw exception message
+  error_type          text CHECK (error_type IN (
+                        'anti_bot','timeout','invalid_url','claude_error',
+                        'network_error','parse_error','image_upload_error','unknown'
+                      )),
+  attempts            int NOT NULL DEFAULT 0,
+  last_attempted_at   timestamptz,
   scrape_duration_ms  int,
   created_at          timestamptz NOT NULL DEFAULT now(),
   expires_at          timestamptz             -- null = never; set for volatile pages
 );
-CREATE INDEX scrape_cache_url_hash_idx ON public.scrape_cache (url_hash);
-CREATE INDEX scrape_cache_status_idx   ON public.scrape_cache (status);
+CREATE INDEX scrape_cache_url_hash_idx    ON public.scrape_cache (url_hash);
+CREATE INDEX scrape_cache_status_idx      ON public.scrape_cache (status);
+CREATE INDEX scrape_cache_error_type_idx  ON public.scrape_cache (error_type)
+  WHERE error_type IS NOT NULL;
 ```
 
 ---
@@ -398,4 +406,5 @@ const cached = await db
 - [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md)
 - [ADR-0008 — ORM: Drizzle](adr/0008-orm.md)
 - [auth.md](auth.md) — `profiles` and `subscriptions` table details
-- [scraper.md](scraper.md) — `scrape_cache` usage
+- [scraper/on-demand.md](scraper/on-demand.md) — `scrape_cache` usage in on-demand flow
+- [scraper/failure-tracking.md](scraper/failure-tracking.md) — `error_type`, `attempts` fields detail
