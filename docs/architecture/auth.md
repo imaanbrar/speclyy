@@ -17,7 +17,7 @@ flowchart TB
     MW[middleware.ts]
     RSC[Server Components]
     SA[Server Actions]
-    Cb[/auth/callback route]
+    Cb["/auth/callback route"]
   end
 
   subgraph Supabase
