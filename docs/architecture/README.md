@@ -24,7 +24,7 @@ docs/architecture/
 See [adr/README.md](adr/README.md).
 
 ### Narrative docs
-*(none yet — added as components are designed)*
+- [auth.md](auth.md) — sign-in flow, session lifecycle, middleware gates, data model, RLS
 
 ### Diagrams
 *(none yet — added as components are designed)*

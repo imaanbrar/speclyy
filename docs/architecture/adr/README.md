@@ -23,3 +23,6 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0002](0002-hosting-platform.md) | Hosting platform — Vercel | Accepted |
 | [0003](0003-database-engine.md) | Database engine — Postgres | Accepted |
 | [0004](0004-postgres-host.md) | Postgres host — Supabase | Accepted |
+| [0005](0005-auth-provider.md) | Auth provider — Supabase Auth | Accepted |
+| [0006](0006-session-strategy.md) | Session strategy — cookie-based SSR via `@supabase/ssr` | Accepted |
+| [0007](0007-auth-data-model.md) | Auth data model and middleware gates | Accepted |
