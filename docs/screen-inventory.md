@@ -44,17 +44,19 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 
 ## 4. Project
 
-### 4.1 Project Overview
-**Purpose:** Top-level view of a project — rooms + items at a glance.
-**Elements:** Project name + meta, "Export" button (always visible), "Add Room" button, room cards (room name, item count, TBD/missing count), completion status badge per room.
+> **Grouping model:** Projects are organized into **Groups** — free-form named sections with no enforced taxonomy. A designer can name a group whatever makes sense for their project: "Plumbing Fixtures", "Master Ensuite", "Level 1 - Kitchen", "XYZ Commercial - Lobby", or anything else. The PDF export preserves these group names exactly as-is.
 
-### 4.2 Room View
-**Purpose:** All items assigned to a specific room.
-**Elements:** Room name header, "Add Item" button, item rows (image thumbnail, product name, brand, finish, SKU, status badge: Complete / TBD / Missing), item quick-actions (edit, remove), empty state.
+### 4.1 Project Overview
+**Purpose:** Top-level view of a project — groups + items at a glance.
+**Elements:** Project name + meta, "Export" button (always visible), "Add Group" button, group cards (group name, item count, TBD/missing count), completion status badge per group, drag-to-reorder groups.
+
+### 4.2 Group View
+**Purpose:** All items assigned to a specific group.
+**Elements:** Group name header (inline-editable), "Add Item" button, item rows (image thumbnail, product name, brand, finish, SKU, status badge: Complete / TBD / Missing), item quick-actions (edit, remove), empty state.
 
 ### 4.3 Add Item — Search Library
-**Purpose:** Find a product from the curated global library and add it to the room.
-**Elements:** Search bar (keyword, e.g. "Kohler Billet"), filter chips (category: plumbing, paint), result cards (image, brand, collection, product name, finish options preview), "Add to Room" action per result, "Not finding it? Add manually / paste URL" fallback CTA.
+**Purpose:** Find a product from the curated global library and add it to a group.
+**Elements:** Search bar (keyword, e.g. "Kohler Billet"), filter chips (type: plumbing, paint — used for search/filter only, not imposed on groups), result cards (image, brand, collection, product name, finish options preview), "Add to Group" action per result, "Not finding it? Add manually / paste URL" fallback CTA.
 
 ### 4.4 Add Item — URL Paste
 **Purpose:** Capture a product from any vendor page via URL.
@@ -70,7 +72,6 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 - Product Name (required)
 - Brand
 - Collection
-- Category (dropdown: Plumbing / Paint / Lighting / Hardware / Tile / Appliances / Other)
 - Finish / Variant
 - SKU / Model #
 - Colour
@@ -79,7 +80,7 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 - Product URL (source link)
 - Image (auto-fetched or upload)
 - Notes (free text)
-- Room assignment (dropdown)
+- Group assignment (dropdown — lists the project's groups by name, whatever they are)
 - Status (Complete / TBD)
 
 **Actions:** Save to Project, Cancel.
@@ -94,13 +95,13 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 
 ### 5.1 Export — Preview & Confirm
 **Purpose:** Review before generating the PDF.
-**Elements:** Export summary (project name, room count, item count, TBD count, missing fields count), optional "final-ready" warnings (non-blocking, e.g. "3 items missing SKU"), toggle: export all rooms / select rooms, "Download PDF" button.
+**Elements:** Export summary (project name, group count, item count, TBD count, missing fields count), optional "final-ready" warnings (non-blocking, e.g. "3 items missing SKU"), toggle: export all groups / select groups, "Download PDF" button.
 
 ### 5.2 PDF Output (not a screen — generated file)
 **Format reference (from Programa spec sheet):**
 - Header: Project name/address, studio name, date
-- Organized by: Category → Room label → Item
-- Per item: product type, product name, brand, colour, material, finish, dimensions, notes
+- Organized by: Group (in designer-defined order, using designer-defined names exactly as entered)
+- Per item: product name, brand, colour, material, finish, dimensions, notes
 - Missing fields shown as "TBD" or "—"
 - Footer: Project / Schedule / Date | Page X of Y
 - Speclyy branding (MVP — no designer logo)
@@ -130,7 +131,7 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 | 3.1 | Projects List | Dashboard |
 | 3.2 | New Project Modal | Dashboard |
 | 4.1 | Project Overview | Project |
-| 4.2 | Room View | Project |
+| 4.2 | Group View | Project |
 | 4.3 | Add Item — Search Library | Project |
 | 4.4 | Add Item — URL Paste | Project |
 | 4.5 | Add Item — Manual Entry | Project |
