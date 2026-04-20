@@ -15,6 +15,8 @@ erDiagram
   project_items }o--o| global_products : references
   project_items }o--o| scrape_cache : sourced_from
   global_products }o--o| scrape_cache : promoted_from
+  crawl_jobs ||--o{ crawl_urls : contains
+  crawl_urls }o--o| scrape_cache : produces
 ```
 
 ---
@@ -198,6 +200,57 @@ CREATE TABLE public.scrape_cache (
 CREATE INDEX scrape_cache_url_hash_idx ON public.scrape_cache (url_hash);
 CREATE INDEX scrape_cache_status_idx   ON public.scrape_cache (status);
 ```
+
+---
+
+### `public.crawl_jobs`
+Top-level bulk crawl campaigns. One row per admin-initiated brand crawl. Written by the admin API, updated by the scraper as URLs are processed.
+
+```sql
+CREATE TABLE public.crawl_jobs (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand                text NOT NULL,
+  domain               text NOT NULL,
+  status               text NOT NULL CHECK (status IN (
+                         'pending','discovering','crawling','paused','completed','failed')),
+  total_urls           int NOT NULL DEFAULT 0,
+  processed_urls       int NOT NULL DEFAULT 0,
+  succeeded_urls       int NOT NULL DEFAULT 0,
+  failed_urls          int NOT NULL DEFAULT 0,
+  duration_days        int NOT NULL DEFAULT 10,
+  rate_limit_ms        int NOT NULL DEFAULT 8000,
+  started_at           timestamptz,
+  completed_at         timestamptz,
+  estimated_completion timestamptz,
+  notes                text,
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### `public.crawl_urls`
+One row per discovered product URL within a crawl job. Provides resumability — on restart, the scraper picks up `status = 'pending'` rows.
+
+```sql
+CREATE TABLE public.crawl_urls (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  crawl_job_id    uuid NOT NULL REFERENCES public.crawl_jobs(id) ON DELETE CASCADE,
+  url             text NOT NULL,
+  url_hash        text NOT NULL,
+  status          text NOT NULL CHECK (status IN (
+                    'pending','in_progress','success','failed','skipped')),
+  attempts        int NOT NULL DEFAULT 0,
+  error_message   text,
+  scrape_cache_id uuid REFERENCES public.scrape_cache(id),
+  processed_at    timestamptz,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX crawl_urls_job_status_idx ON public.crawl_urls (crawl_job_id, status);
+CREATE INDEX crawl_urls_url_hash_idx   ON public.crawl_urls (url_hash);
+```
+
+RLS: `crawl_jobs` and `crawl_urls` are admin-only tables — no user-facing RLS policies. Readable and writable via service-role key (Drizzle) only.
 
 ---
 

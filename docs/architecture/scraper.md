@@ -2,7 +2,7 @@
 
 How the URL-to-product extraction pipeline works. This is Speclyy's core differentiator — "paste a URL, get prefilled fields."
 
-> **ADR status:** ADR-0010 (scraper host), ADR-0011 (job queue), ADR-0012 (extraction strategy) are pending — this document captures the proposed architecture ahead of those decisions being locked.
+> ADRs 0010–0014 are now locked. See [adr/](adr/) for decisions on scraper host, job queue, extraction strategy, bulk crawl design, and log store.
 
 ---
 
@@ -344,24 +344,160 @@ One always-on instance handles up to 5 concurrent scrape jobs (Inngest concurren
 
 ---
 
-## Key decisions pending (ADRs)
+---
 
-| Decision | Options | Leaning |
+## Bulk crawl mode
+
+Admin-triggered pipeline for building the global product library by scraping entire brand catalogs. See [ADR-0013](adr/0013-bulk-crawl.md) for the full design rationale.
+
+### Overview
+
+```mermaid
+flowchart TB
+  subgraph Admin["Admin trigger"]
+    API["POST /api/admin/crawl\n{ brand, domain, durationDays }"]
+  end
+
+  subgraph Inngest
+    DISC[crawl/discover\nURL discovery fan-out]
+    CRON[cron 6am daily\npick next N URLs]
+    PROC[crawl/url.process\nper-URL — throttled 1/8s per domain]
+  end
+
+  subgraph DB
+    CJ[crawl_jobs\nprogress + status]
+    CU[crawl_urls\none row per product URL]
+  end
+
+  subgraph Scraper["Scraper (Fly.io)"]
+    SITE[sitemap.xml parser\n+ category crawler]
+    EXTRACT[Playwright + Claude\nsame as on-demand]
+  end
+
+  subgraph Axiom
+    LOGS[structured logs\nsuccess rate, completeness, cost]
+  end
+
+  API -->|emit crawl/discover| DISC
+  DISC --> SITE
+  SITE -->|discovered URLs| CU
+  DISC --> CJ
+  CRON -->|batch_size = total / days| PROC
+  PROC -->|throttled| EXTRACT
+  EXTRACT --> CU
+  EXTRACT --> CJ
+  EXTRACT --> LOGS
+```
+
+### URL discovery
+
+Two strategies run in sequence:
+
+1. **Sitemap parsing (primary)** — `GET https://{domain}/sitemap.xml`, filter URLs matching product path patterns (`/product/`, `/bathroom/`, etc.). Covers 80–90% of catalog.
+2. **Category page crawl (gap fill)** — Playwright renders collection/category pages, extracts product links. Catches products missing from sitemaps.
+
+All discovered URLs inserted into `crawl_urls` with `status: pending`. Duplicates against existing `scrape_cache` entries are marked `skipped`.
+
+### Daily batch processing
+
+```ts
+// Inngest cron — fires daily at 6am
+{ cron: '0 6 * * *' }
+
+// batch_size = Math.ceil(crawl.totalUrls / crawl.durationDays)
+// Fans out crawl/url.process events for the next N pending URLs
+```
+
+Delta at 1,200 URLs / 10 days = 120 URLs/day = ~16 minutes of actual scraping at 8s rate limit.
+
+### Rate limiting
+
+Inngest domain throttle — max 1 request per domain per 8 seconds:
+
+```ts
+throttle: {
+  key: 'event.data.domain',
+  count: 1,
+  period: '8s',
+}
+```
+
+Enforced across all concurrent workers automatically. Equivalent to a single person browsing casually — no meaningful load on vendor servers.
+
+### Admin API (MVP — no UI required)
+
+```bash
+# Start a crawl
+curl -X POST https://app.speclyy.com/api/admin/crawl \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "brand": "Delta", "domain": "deltafaucet.com", "durationDays": 10 }'
+
+# Check progress
+curl https://app.speclyy.com/api/admin/crawl/status \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+# → { activeCrawls: [{ brand, status, progress: "342/1204", successRate: "94.7%", eta: "2026-04-28" }] }
+
+# Pause / resume
+curl -X POST https://app.speclyy.com/api/admin/crawl/{id}/pause \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
+```
+
+`ADMIN_API_KEY` is a long random string in environment variables. No auth UI needed for a 1–2 person team.
+
+### Observability — Axiom
+
+Every URL processed emits a structured log event to Axiom. The Axiom dashboard is the admin screen at MVP.
+
+```kusto
+// Success rate by domain — this week
+['speclyy-scraper']
+| where _time > ago(7d) and mode == "bulk_crawl"
+| summarize
+    total     = count(),
+    succeeded = countif(status == "success"),
+    rate      = round(100.0 * countif(status == "success") / count(), 1)
+  by domain
+
+// Field completeness trend — Delta crawl
+['speclyy-scraper']
+| where brand == "Delta" and mode == "bulk_crawl"
+| summarize avg_completeness = avg(completeness_pct) by bin(_time, 1d)
+
+// Claude cost tracker
+['speclyy-scraper']
+| summarize
+    est_cost = sum(claude_input_tokens) * 0.000015
+             + sum(claude_output_tokens) * 0.000075
+  by bin(_time, 1d)
+```
+
+Note: APL syntax is near-identical to Azure Monitor KQL (`_time` instead of `timestamp`, same pipeline operators).
+
+---
+
+## Locked decisions
+
+| Decision | Choice | ADR |
 |---|---|---|
-| **Scraper host** | Fly.io vs Railway vs Render | Fly.io — persistent container, same-region as Supabase |
-| **Job queue** | Inngest vs SQS + Lambda vs BullMQ + Redis | Inngest — step isolation, no Redis, Vercel-native |
-| **Extraction model** | Claude Opus vs Sonnet | Opus for quality; revisit Sonnet if cost becomes material |
-| **HTML truncation** | Full HTML vs DOM-pruned vs visible-text | DOM-pruned (strip scripts/styles, keep content) |
-| **Scrape cache TTL** | Never expire vs 30-day vs 90-day | Never expire for stable product pages; 30 days for pages with pricing |
-| **Image re-hosting** | Always vs only on failure | Always — vendor URLs break over time |
+| Scraper host | Fly.io | [ADR-0010](adr/0010-scraper-host.md) |
+| Job queue | Inngest | [ADR-0011](adr/0011-job-queue.md) |
+| Extraction model | Claude Opus (`claude-opus-4-5`) | [ADR-0012](adr/0012-extraction-strategy.md) |
+| HTML truncation | DOM-pruned ~15k chars + screenshot | [ADR-0012](adr/0012-extraction-strategy.md) |
+| Scrape cache TTL | Never expire for product pages | [ADR-0012](adr/0012-extraction-strategy.md) |
+| Image re-hosting | Always re-host to Supabase Storage | [ADR-0009](adr/0009-storage.md) |
+| Bulk crawl design | Inngest cron + fan-out + domain throttle | [ADR-0013](adr/0013-bulk-crawl.md) |
+| Log store | Axiom | [ADR-0014](adr/0014-log-store.md) |
 
 ---
 
 ## References
 
-- [ADR-0010 — Scraper host: Fly.io](adr/0010-scraper-host.md) *(pending)*
-- [ADR-0011 — Job queue: Inngest](adr/0011-job-queue.md) *(pending)*
-- [ADR-0012 — Extraction strategy: Claude API](adr/0012-extraction-strategy.md) *(pending)*
-- [database.md](database.md) — `scrape_cache` table schema
+- [ADR-0010 — Scraper host: Fly.io](adr/0010-scraper-host.md)
+- [ADR-0011 — Job queue: Inngest](adr/0011-job-queue.md)
+- [ADR-0012 — Extraction strategy: Claude API](adr/0012-extraction-strategy.md)
+- [ADR-0013 — Bulk crawl design](adr/0013-bulk-crawl.md)
+- [ADR-0014 — Log store: Axiom](adr/0014-log-store.md)
+- [database.md](database.md) — `scrape_cache`, `crawl_jobs`, `crawl_urls` tables
 - [storage.md](storage.md) — image re-hosting to Supabase Storage
 - [MVP decisions](../mvp-decisions.md) — URL paste behaviour decision

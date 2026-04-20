@@ -28,3 +28,8 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0007](0007-auth-data-model.md) | Auth data model and middleware gates | Accepted |
 | [0008](0008-orm.md) | ORM — Drizzle | Accepted |
 | [0009](0009-storage.md) | Object storage — Supabase Storage (migrate to R2 at $50/mo overage) | Accepted |
+| [0010](0010-scraper-host.md) | Scraper host — Fly.io | Accepted |
+| [0011](0011-job-queue.md) | Job queue — Inngest | Accepted |
+| [0012](0012-extraction-strategy.md) | Extraction strategy — Claude API (Opus) | Accepted |
+| [0013](0013-bulk-crawl.md) | Bulk crawl design | Accepted |
+| [0014](0014-log-store.md) | Log store — Axiom | Accepted |
