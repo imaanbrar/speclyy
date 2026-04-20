@@ -24,7 +24,11 @@ docs/architecture/
 See [adr/README.md](adr/README.md).
 
 ### Narrative docs
+- [application.md](application.md) — route groups, RSC vs Client Components, Server Actions, data fetching, env vars
 - [auth.md](auth.md) — sign-in flow, session lifecycle, middleware gates, data model, RLS
+- [database.md](database.md) — full schema, dual-client pattern, migrations, RLS policies, query patterns
+- [storage.md](storage.md) — buckets, upload flows, image transforms, signed URLs, R2 migration path
+- [scraper.md](scraper.md) — job lifecycle, Playwright + stealth, Claude extraction, fallback states, governance hook
 
 ### Diagrams
 *(none yet — added as components are designed)*
