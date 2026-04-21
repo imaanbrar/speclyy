@@ -126,4 +126,4 @@ Use **Axiom** as the structured log store.
 
 - ADR-0010 Scraper host — Fly.io
 - ADR-0013 Bulk crawl design
-- [scraper.md](../scraper.md)
+- [scraper/README.md](../scraper/README.md)

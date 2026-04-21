@@ -140,4 +140,4 @@ CREATE INDEX crawl_urls_url_hash_idx   ON public.crawl_urls (url_hash);
 - ADR-0011 Job queue — Inngest
 - ADR-0012 Extraction strategy — Claude API
 - ADR-0014 Log store — Axiom (crawl observability)
-- [scraper.md](../scraper.md)
+- [scraper/README.md](../scraper/README.md)

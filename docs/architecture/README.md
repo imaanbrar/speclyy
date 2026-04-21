@@ -15,7 +15,7 @@ docs/architecture/
 ## What lives where
 
 - **ADRs** capture a single decision: context, options, chosen path, tradeoffs. Immutable once **Accepted** — superseded by a new ADR when the decision changes. See [adr/README.md](adr/README.md) for the index and process.
-- **Narrative docs** (e.g. `auth.md`, `database.md`, `scraper.md`) describe *how* a component works end-to-end — the current state, not a historical decision. These get updated in place as the system evolves.
+- **Narrative docs** (e.g. `auth.md`, `database.md`, `scraper/README.md`) describe *how* a component works end-to-end — the current state, not a historical decision. These get updated in place as the system evolves.
 - **Diagrams** live under `diagrams/`. Prefer Mermaid (renders in GitHub) or committed SVG/PNG with the source file alongside.
 
 ## Quick index
@@ -24,6 +24,7 @@ docs/architecture/
 See [adr/README.md](adr/README.md).
 
 ### Narrative docs
+- [system-overview.md](system-overview.md) — **stub** — top-level system context, containers, primary flows
 - [application.md](application.md) — route groups, RSC vs Client Components, Server Actions, data fetching, env vars
 - [marketing.md](marketing.md) — Astro marketing site, Islands architecture, animations, Vercel monorepo setup
 - [auth.md](auth.md) — sign-in flow, session lifecycle, middleware gates, data model, RLS
@@ -35,6 +36,10 @@ See [adr/README.md](adr/README.md).
   - [scraper/bulk-crawl.md](scraper/bulk-crawl.md) — admin-triggered brand crawls, URL discovery, daily batching, admin API
   - [scraper/performance.md](scraper/performance.md) — browser pool, pre-warm strategies, cache flywheel
   - [scraper/failure-tracking.md](scraper/failure-tracking.md) — failure taxonomy, schema, Axiom queries, feedback loop
+- [billing.md](billing.md) — **stub** — Stripe checkout, webhooks, trial/lapse, promo codes
+- [security.md](security.md) — **stub** — threat model, secrets, RLS discipline, data retention
+- [operations.md](operations.md) — **stub** — observability, SLOs, alerting, runbooks
+- [deployments.md](deployments.md) — **stub** — environments, CI/CD, migration promotion, rollout/rollback
 
 ### Diagrams
 *(none yet — added as components are designed)*

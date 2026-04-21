@@ -240,4 +240,4 @@ No changes to RLS logic or database schema — `image_url` columns just point to
 - [ADR-0009 — Object storage: Supabase Storage](adr/0009-storage.md)
 - [ADR-0005 — Auth provider: Supabase Auth](adr/0005-auth-provider.md) (RLS via `auth.uid()`)
 - [database.md](database.md) — `project_items.image_url` column
-- [scraper.md](scraper.md) — image re-hosting from vendor URLs
+- [scraper/README.md](scraper/README.md) — image re-hosting from vendor URLs
