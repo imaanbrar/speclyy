@@ -164,7 +164,8 @@ Supabase does not support schema rollback. The strategy is:
 | `DATABASE_URL_POOLED` | Production + Preview | — | PgBouncer |
 | `STRIPE_SECRET_KEY` | Production + Preview | — | `sk_live_` prod, `sk_test_` preview |
 | `STRIPE_WEBHOOK_SECRET` | Production + Preview | — | Different secret per env |
-| `STRIPE_PRICE_ID_PRO_MONTHLY` | Production + Preview | — | Different price IDs per env |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | Production + Preview | — | $37/mo price ID; different per env |
+| `STRIPE_PRICE_ID_PRO_ANNUAL` | Production + Preview | — | $29/mo billed annually price ID; different per env |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | All | — | Public |
 | `INNGEST_EVENT_KEY` | Production + Preview | — | |
 | `INNGEST_SIGNING_KEY` | Production + Preview | — | |

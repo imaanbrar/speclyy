@@ -28,10 +28,10 @@ MVP ships with just enough data to make the 5 must-win workflows work (e.g. Kohl
 ---
 
 ## 4. Business Model
-**Open beta + flat monthly subscription + 7-day free trial.**
+**Open beta + subscription (monthly or annual) + 7-day free trial.**
 - Anyone can sign up (no waitlist, no invite codes)
-- 7-day free trial on signup
-- Flat monthly subscription after trial
+- 7-day free trial on signup — no credit card required
+- Two billing options after trial: monthly ($37/mo) or annual ($29/mo, billed yearly — 30% off)
 - Promo codes available to grant free access for a defined period (e.g. community partnerships, influencer campaigns)
 
 ---
@@ -54,9 +54,10 @@ Designers can save/reuse products across projects. Not in scope for MVP launch. 
 ---
 
 ## 7. Pricing
-**Flat monthly subscription, one tier.**
-- 7-day free trial
-- Single paid tier (price TBD)
+**One tier, two billing intervals.**
+- 7-day free trial — no credit card required
+- Pro Monthly: $37/month
+- Pro Annual: $29/month, billed annually (30% off vs. monthly)
 - Promo codes override billing for a defined free period
 
 ---
@@ -80,4 +81,4 @@ After Google sign-in, new users go through a short setup before reaching the das
 2. Studio name
 3. Market (Los Angeles / New York / Dallas / Calgary)
 
-Then: dashboard with empty state + "Create your first project" prompt.
+Then: dashboard with empty state + "Create your first project" prompt. The 7-day free trial starts automatically at sign-up — no card required, no plan picked up front. Designers choose monthly ($37) or annual ($29/mo billed yearly) in Stripe Checkout when they upgrade (either before trial ends or after paywall).

@@ -41,12 +41,12 @@ flowchart TD
 
 ### Plans
 
-| Plan | Stripe Price ID | Trial | Features |
-|---|---|---|---|
-| Pro Monthly | `price_xxx_monthly` | 14 days | Full access |
-| *(Annual — future)* | TBD | TBD | — |
+| Plan | Stripe Price ID | Price | Trial | Features |
+|---|---|---|---|---|
+| Pro Monthly | `price_xxx_monthly` | $37/month | 7 days (no card required) | Full access |
+| Pro Annual | `price_xxx_annual` | $29/month (billed annually, $348/yr — 30% off) | 7 days (no card required) | Full access |
 
-> Price IDs are stored in env vars (`STRIPE_PRICE_ID_PRO_MONTHLY`), not hardcoded.
+> Price IDs are stored in env vars (`STRIPE_PRICE_ID_PRO_MONTHLY`, `STRIPE_PRICE_ID_PRO_ANNUAL`), not hardcoded. The plan selection is passed from the client to `createCheckoutSession` and resolved to the correct env var server-side.
 
 ### Subscription states
 
@@ -77,7 +77,7 @@ Trial expiry is evaluated in middleware: if `trial_ends_at < now()` **and** `sta
 ```ts
 // app/(billing)/billing/actions.ts
 'use server'
-export async function createCheckoutSession() {
+export async function createCheckoutSession(interval: 'monthly' | 'annual') {
   const supabase = createServerClient(...)
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -87,10 +87,14 @@ export async function createCheckoutSession() {
     .eq('user_id', user.id)
     .single()
 
+  const priceId = interval === 'annual'
+    ? process.env.STRIPE_PRICE_ID_PRO_ANNUAL
+    : process.env.STRIPE_PRICE_ID_PRO_MONTHLY
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: sub.stripe_customer_id ?? undefined,  // reuse if exists
-    line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO_MONTHLY, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=1`,
     allow_promotion_codes: true,
@@ -280,7 +284,7 @@ See [operations.md](operations.md) for the full observability setup.
 ## Open questions
 
 - **Stripe Tax** — not yet configured. Will need to enable before expanding to US states with SaaS tax requirements.
-- **Annual plans** — price ID and checkout flow update needed; trial logic stays the same.
+- **Plan switching (monthly ↔ annual)** — post-MVP. At MVP, designers pick an interval at checkout; changing interval requires canceling and re-subscribing.
 - **Team / seat billing** — not in scope for MVP.
 
 ---

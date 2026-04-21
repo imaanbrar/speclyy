@@ -187,18 +187,18 @@ Axiom's free tier was specifically chosen because it covers the full 10-day bulk
 
 ## Unit economics
 
-Assuming Speclyy charges **$25/designer/month**:
+Assuming a blended **$32/designer/month** (between annual $29 and monthly $37):
 
 | Metric | Value |
 |---|---|
-| Monthly revenue (500 designers) | $12,500 |
+| Monthly revenue (500 designers) | $16,000 |
 | Infrastructure cost (Opus, realistic) | $140 |
-| **Infra as % of revenue** | **1.1%** |
+| **Infra as % of revenue** | **0.9%** |
 | Infrastructure cost (Sonnet) | $106 |
-| **Infra as % of revenue (Sonnet)** | **0.8%** |
+| **Infra as % of revenue (Sonnet)** | **0.7%** |
 | Infrastructure cost per paying designer | ~$0.28 |
-| Revenue per designer | $25.00 |
-| **Gross margin before infra** | ~**98.9%** |
+| Revenue per designer | $29–$37 |
+| **Gross margin before infra** | ~**99.1%** |
 
 The model is extremely infra-efficient. Claude API is the only meaningful variable cost — everything else is near-fixed.
 
@@ -263,9 +263,10 @@ Stripe charges per transaction, not a monthly fee.
 | Metric | Value |
 |---|---|
 | Per-transaction fee | 2.9% + $0.30 |
-| Per designer at $25/month | $0.725 + $0.30 = **$1.025/transaction** |
-| 500 paying designers/month | **~$513/month** |
-| As % of revenue | **4.1%** |
+| Per designer at $37/month (monthly plan) | $1.073 + $0.30 = **$1.373/transaction** |
+| Per designer at $348/year (annual plan) | $10.09 + $0.30 = **$10.39/year** (~$0.87/mo amortised) |
+| 500 paying designers/month (blended) | **~$550/month** |
+| As % of revenue | **~3.4%** |
 
 Stripe is 4× more expensive than your entire infrastructure bill. This is normal for SaaS — it's the cost of managed payments.
 
