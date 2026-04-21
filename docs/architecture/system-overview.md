@@ -15,33 +15,44 @@ The product is a Next.js web app deployed on Vercel. The AI scraper is a separat
 ## System context
 
 ```mermaid
-C4Context
-  Person(designer, "Designer", "Interior designer building spec sheets")
-  Person(admin, "Admin", "Speclyy team — triggers bulk crawls, monitors health")
+flowchart TB
+  subgraph People["People"]
+    Designer["👤 Designer\nInterior designer\nbuilding spec sheets"]
+    Admin["👤 Admin\nSpeclyy team — triggers\nbulk crawls, monitors health"]
+  end
 
-  System(speclyy, "Speclyy App", "Next.js on Vercel — project/spec management")
-  System(scraper, "Scraper", "Node.js on Fly.io — headless browser + AI extraction")
+  subgraph Core["Speclyy Systems"]
+    App["🟦 Speclyy App\nNext.js on Vercel\nproject/spec management"]
+    Scraper["🟦 Scraper\nNode.js on Fly.io\nheadless browser + AI extraction"]
+  end
 
-  System_Ext(supabase, "Supabase", "Postgres, Auth, Storage, Realtime")
-  System_Ext(stripe, "Stripe", "Subscriptions, billing, customer portal")
-  System_Ext(inngest, "Inngest", "Durable job queue / orchestration")
-  System_Ext(claude, "Claude API", "Field extraction from scraped HTML")
-  System_Ext(google, "Google OAuth", "Sign-in provider")
-  System_Ext(axiom, "Axiom", "Log aggregation and observability")
-  System_Ext(vendors, "Vendor sites", "Product pages being scraped (e.g. Restoration Hardware, CB2)")
+  subgraph External["External Services"]
+    Supabase["Supabase\nPostgres, Auth,\nStorage, Realtime"]
+    Stripe["Stripe\nSubscriptions,\nbilling, customer portal"]
+    Inngest["Inngest\nDurable job queue\n/ orchestration"]
+    Claude["Claude API\nField extraction\nfrom scraped HTML"]
+    Google["Google OAuth\nSign-in provider"]
+    Axiom["Axiom\nLog aggregation\nand observability"]
+    Vendors["Vendor sites\nProduct pages\n(e.g. RH, CB2)"]
+  end
 
-  Rel(designer, speclyy, "Uses", "HTTPS")
-  Rel(admin, speclyy, "Admin APIs", "HTTPS + shared secret")
-  Rel(speclyy, supabase, "DB + Auth + Storage + Realtime", "HTTPS / JWT")
-  Rel(speclyy, stripe, "Subscriptions", "HTTPS")
-  Rel(speclyy, inngest, "Emit / receive jobs", "HTTPS")
-  Rel(scraper, inngest, "Receive jobs, report results", "HTTPS")
-  Rel(scraper, claude, "Extract fields", "HTTPS")
-  Rel(scraper, vendors, "Headless browser fetch", "HTTPS")
-  Rel(scraper, supabase, "Write cache + storage", "HTTPS / service-role key")
-  Rel(scraper, axiom, "Structured logs", "HTTPS")
-  Rel(speclyy, google, "OAuth", "HTTPS")
-  Rel(stripe, speclyy, "Webhook events", "HTTPS")
+  Designer -->|"HTTPS"| App
+  Admin -->|"HTTPS + shared secret"| App
+
+  App -->|"DB + Auth + Storage + Realtime\nHTTPS / JWT"| Supabase
+  App -->|"Subscriptions\nHTTPS"| Stripe
+  App -->|"Emit / receive jobs\nHTTPS"| Inngest
+  App -->|"OAuth\nHTTPS"| Google
+
+  Stripe -->|"Webhook events\nHTTPS"| App
+
+  Inngest -->|"Trigger jobs\nHTTPS"| Scraper
+
+  Scraper -->|"Receive jobs, report results\nHTTPS"| Inngest
+  Scraper -->|"Extract fields\nHTTPS"| Claude
+  Scraper -->|"Headless browser fetch\nHTTPS"| Vendors
+  Scraper -->|"Write cache + storage\nHTTPS / service-role key"| Supabase
+  Scraper -->|"Structured logs\nHTTPS"| Axiom
 ```
 
 ---
