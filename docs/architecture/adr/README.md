@@ -33,3 +33,4 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0012](0012-extraction-strategy.md) | Extraction strategy — Claude API (Opus) | Accepted |
 | [0013](0013-bulk-crawl.md) | Bulk crawl design | Accepted |
 | [0014](0014-log-store.md) | Log store — Axiom | Accepted |
+| [0015](0015-marketing-site.md) | Marketing site — Astro in monorepo, deployed on Vercel | Accepted |

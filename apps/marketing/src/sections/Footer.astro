@@ -1,0 +1,19 @@
+---
+const year = new Date().getFullYear()
+
+const links = [
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms',   href: '/terms' },
+]
+---
+
+<footer class="border-t border-neutral-100 px-6 py-10 md:px-12">
+  <div class="container-content flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-neutral-400">
+    <span>© {year} Speclyy. All rights reserved.</span>
+    <nav class="flex gap-6">
+      {links.map(link => (
+        <a href={link.href} class="hover:text-neutral-700 transition-colors">{link.label}</a>
+      ))}
+    </nav>
+  </div>
+</footer>

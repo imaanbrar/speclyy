@@ -1,0 +1,61 @@
+---
+const features = [
+  {
+    icon: '⚡',
+    heading: 'URL → spec in seconds',
+    body: 'Paste any product URL from any vendor website. Our AI reads the page and fills brand, finish, SKU, dimensions, and product image automatically.',
+  },
+  {
+    icon: '📚',
+    heading: 'Trusted product library',
+    body: "Search Delta, Kohler, Moen, Brizo and more from our curated library. Popular products are pre-loaded — no scraping wait time.",
+  },
+  {
+    icon: '🗂️',
+    heading: 'Organised by project + room',
+    body: 'Group specs by room (Master Ensuite, Kitchen, Powder Room) within each project. Reorder with drag and drop.',
+  },
+  {
+    icon: '📄',
+    heading: 'PDF export in one click',
+    body: 'Export a clean, branded spec sheet your clients actually want to read. No reformatting, no layout work.',
+  },
+  {
+    icon: '🌐',
+    heading: 'Live shareable links',
+    body: 'Share a live link with your client instead of a static PDF. Updates appear in real-time — no re-sending files.',
+  },
+  {
+    icon: '✏️',
+    heading: 'Manual entry always available',
+    body: "Can't find a product online? Add it manually in seconds. Speclyy never blocks your workflow.",
+  },
+]
+---
+
+<section id="features" class="section bg-neutral-50">
+  <div class="container-content">
+
+    <div class="max-w-2xl mb-16">
+      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
+        Features
+      </p>
+      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
+        Everything you need.<br />
+        Nothing you don't.
+      </h2>
+    </div>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map(feature => (
+        <div class="rounded-2xl bg-white p-7 border border-neutral-100 shadow-sm
+                    hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div class="text-2xl mb-4">{feature.icon}</div>
+          <h3 class="text-base font-semibold text-neutral-900 mb-2">{feature.heading}</h3>
+          <p class="text-sm text-neutral-500 leading-relaxed">{feature.body}</p>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

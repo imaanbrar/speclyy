@@ -25,6 +25,7 @@ See [adr/README.md](adr/README.md).
 
 ### Narrative docs
 - [application.md](application.md) — route groups, RSC vs Client Components, Server Actions, data fetching, env vars
+- [marketing.md](marketing.md) — Astro marketing site, Islands architecture, animations, Vercel monorepo setup
 - [auth.md](auth.md) — sign-in flow, session lifecycle, middleware gates, data model, RLS
 - [database.md](database.md) — full schema, dual-client pattern, migrations, RLS policies, query patterns
 - [storage.md](storage.md) — buckets, upload flows, image transforms, signed URLs, R2 migration path

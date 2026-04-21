@@ -1,0 +1,70 @@
+---
+// Hero — above the fold. No JS. Pure CSS animation on load.
+// Replace placeholder image with actual product screenshot.
+import { Image } from 'astro:assets'
+---
+
+<section class="section relative overflow-hidden bg-white">
+  <!-- Subtle radial gradient background -->
+  <div
+    class="pointer-events-none absolute inset-0 -z-10"
+    style="background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(58,148,114,0.08), transparent);"
+    aria-hidden="true"
+  />
+
+  <div class="container-content text-center">
+
+    <!-- Eyebrow -->
+    <p class="animate-fade-in inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-600 mb-6">
+      Now in early access
+    </p>
+
+    <!-- Headline -->
+    <h1 class="animate-fade-up mx-auto max-w-3xl text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl lg:text-7xl leading-[1.05]">
+      Your product spec sheet,<br />
+      <span class="text-brand-500">without the copy-paste.</span>
+    </h1>
+
+    <!-- Subheadline -->
+    <p class="animate-fade-up [animation-delay:100ms] mt-6 mx-auto max-w-xl text-lg text-neutral-500 leading-relaxed">
+      Paste a product URL. Speclyy fills in the brand, finish, SKU, dimensions and image — instantly. Build and share beautiful spec sheets in minutes.
+    </p>
+
+    <!-- CTAs -->
+    <div class="animate-fade-up [animation-delay:200ms] mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="https://app.speclyy.com/sign-up" class="btn-primary px-8 py-3.5 text-base">
+        Start free — 14 days
+      </a>
+      <a href="#how-it-works" class="btn-secondary px-8 py-3.5 text-base">
+        See how it works
+      </a>
+    </div>
+
+    <!-- Social proof pill -->
+    <p class="animate-fade-in [animation-delay:400ms] mt-8 text-sm text-neutral-400">
+      No credit card required · Used by designers in LA, NYC & Dallas
+    </p>
+
+    <!-- Product screenshot -->
+    <div class="animate-fade-up [animation-delay:300ms] mt-16 rounded-2xl overflow-hidden border border-neutral-200 shadow-2xl shadow-neutral-200/80 mx-auto max-w-5xl">
+      <!--
+        TODO: Replace with real product screenshot.
+        Use Astro's <Image /> for automatic WebP + responsive srcset:
+
+        <Image
+          src={productScreenshot}
+          alt="Speclyy project dashboard showing spec sheets with filled product fields"
+          width={1280}
+          height={800}
+          class="w-full"
+          loading="eager"
+          quality={90}
+        />
+      -->
+      <div class="aspect-[16/10] bg-neutral-100 flex items-center justify-center">
+        <p class="text-sm text-neutral-400">Product screenshot — replace with actual UI</p>
+      </div>
+    </div>
+
+  </div>
+</section>

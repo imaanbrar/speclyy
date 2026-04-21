@@ -1,0 +1,16 @@
+{
+  "name": "speclyy",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev:web":        "pnpm --filter @speclyy/web dev",
+    "dev:marketing":  "pnpm --filter @speclyy/marketing dev",
+    "build:web":      "pnpm --filter @speclyy/web build",
+    "build:marketing":"pnpm --filter @speclyy/marketing build",
+    "build":          "pnpm --filter './apps/*' build"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}

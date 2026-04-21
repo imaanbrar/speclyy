@@ -1,0 +1,67 @@
+---
+// Pricing — single tier at MVP (no freemium complexity)
+// Update numbers here when pricing is confirmed
+const plan = {
+  name:       'Pro',
+  price:      '25',
+  period:     'month',
+  trial:      '14-day free trial',
+  cta:        'Start free trial',
+  ctaHref:    'https://app.speclyy.com/sign-up',
+  highlights: [
+    'Unlimited projects',
+    'Unlimited spec items',
+    'URL → spec extraction',
+    'PDF + shareable link export',
+    'Product library access',
+    'Priority support',
+  ],
+}
+---
+
+<section id="pricing" class="section bg-white">
+  <div class="container-content">
+
+    <div class="max-w-2xl mb-16">
+      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
+        Pricing
+      </p>
+      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
+        Simple pricing.<br />No surprises.
+      </h2>
+    </div>
+
+    <div class="max-w-sm">
+      <div class="rounded-3xl border-2 border-brand-500 bg-white p-10 shadow-xl shadow-brand-100">
+
+        <!-- Plan name + price -->
+        <div class="mb-8">
+          <p class="text-sm font-semibold text-brand-600 mb-1">{plan.name}</p>
+          <div class="flex items-end gap-1">
+            <span class="text-5xl font-bold text-neutral-900">${plan.price}</span>
+            <span class="text-sm text-neutral-400 pb-2">/ {plan.period}</span>
+          </div>
+          <p class="mt-2 text-sm text-neutral-500">{plan.trial} · cancel anytime</p>
+        </div>
+
+        <!-- Features list -->
+        <ul class="space-y-3 mb-10">
+          {plan.highlights.map(item => (
+            <li class="flex items-center gap-3 text-sm text-neutral-700">
+              <svg class="w-4 h-4 text-brand-500 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/>
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        <a href={plan.ctaHref} class="btn-primary w-full justify-center py-3.5 text-base rounded-2xl">
+          {plan.cta}
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+</section>

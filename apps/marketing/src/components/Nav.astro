@@ -1,0 +1,48 @@
+---
+const links = [
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Features',     href: '#features' },
+  { label: 'Pricing',      href: '#pricing' },
+]
+---
+
+<header
+  id="nav"
+  class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
+         px-6 py-4 md:px-12
+         bg-white/80 backdrop-blur-md border-b border-neutral-100
+         transition-shadow duration-200"
+>
+  <!-- Logo -->
+  <a href="/" class="text-lg font-bold tracking-tight text-neutral-900">
+    Speclyy
+  </a>
+
+  <!-- Desktop nav links -->
+  <nav class="hidden md:flex items-center gap-8">
+    {links.map(link => (
+      <a
+        href={link.href}
+        class="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+      >
+        {link.label}
+      </a>
+    ))}
+  </nav>
+
+  <!-- CTA -->
+  <div class="flex items-center gap-3">
+    <a
+      href="https://app.speclyy.com/sign-in"
+      class="hidden md:inline-flex text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+    >
+      Sign in
+    </a>
+    <a href="https://app.speclyy.com/sign-up" class="btn-primary text-sm py-2 px-4">
+      Start free trial
+    </a>
+  </div>
+</header>
+
+<!-- Spacer so content isn't hidden under fixed nav -->
+<div class="h-[73px]" aria-hidden="true" />
