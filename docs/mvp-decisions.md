@@ -82,10 +82,13 @@ Building solo initially, one additional dev joining as needed. Tech stack decisi
 ---
 
 ## 10. Onboarding
-**2–3 screen onboarding flow on first sign-in.**
+**4-screen onboarding flow on first sign-in.**
 After Google sign-in, new users go through a short setup before reaching the dashboard:
 1. Your name
 2. Studio name
 3. Market (Los Angeles / New York / Dallas / Calgary)
+4. Plan overview — "You're on the Free plan." Honest, no-pressure summary of what's included and what's gated, with a Free vs Pro comparison table and a "Compare plans" link. No upgrade prompt — CTA is just "Go to dashboard →".
 
-Then: dashboard with empty state + "Create your first project" prompt. No trial period — free plan is indefinite. Designers use the full app for free and hit the paywall only when they try to export a PDF (shown a blurred preview with an upgrade prompt). They then choose monthly ($37) or annual ($29/mo billed yearly) in Stripe Checkout.
+Then: dashboard with empty state + "Create your first project" prompt. A "Free plan" badge in the dashboard header with a "See what's included →" link gives ongoing transparency without being intrusive.
+
+Free plan is indefinite — no trial. Designers hit the paywall only when they try to export a PDF (shown a blurred preview + upgrade CTA). They then choose monthly ($37) or annual ($29/mo billed yearly) in Stripe Checkout.

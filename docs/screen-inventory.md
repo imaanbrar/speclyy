@@ -18,15 +18,27 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 
 ### 2.1 Onboarding — Your Name
 **Purpose:** Personalise the workspace.
-**Elements:** "What's your name?" prompt, first name + last name fields, Next button, progress indicator (1 of 3).
+**Elements:** "What's your name?" prompt, first name + last name fields, Next button, progress indicator (1 of 4).
 
 ### 2.2 Onboarding — Studio Name
 **Purpose:** Used on exported spec sheets.
-**Elements:** "What's your studio called?" prompt, studio name field, Back + Next buttons, progress indicator (2 of 3).
+**Elements:** "What's your studio called?" prompt, studio name field, Back + Next buttons, progress indicator (2 of 4).
 
 ### 2.3 Onboarding — Your Market
 **Purpose:** Determines which local supplier inventory is surfaced in search.
-**Elements:** "Where are you based?" prompt, 4 market options (Los Angeles / New York / Dallas / Calgary), single-select cards, Back + Finish buttons, progress indicator (3 of 3).
+**Elements:** "Where are you based?" prompt, 4 market options (Los Angeles / New York / Dallas / Calgary), single-select cards, Back + Next buttons, progress indicator (3 of 4).
+
+### 2.4 Onboarding — Plan Overview
+**Purpose:** Set honest expectations about the free plan before the designer reaches the dashboard. No decision required — they're already on Free.
+**Elements:**
+- Heading: "You're all set."
+- Subtext: "You're on the Free plan — build unlimited specs and explore the product library. When you're ready to share your work, upgrade to Pro to unlock PDF export."
+- Free vs Pro comparison table (same feature set as marketing pricing page)
+- "Compare plans" hyperlink (opens full comparison, same table)
+- Primary CTA: "Go to dashboard →" (no Back button — this is the final step)
+- Progress indicator (4 of 4)
+
+No upgrade prompt or payment flow here — comparison is informational only.
 
 ---
 
@@ -128,6 +140,7 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 | 2.1 | Onboarding — Name | Onboarding |
 | 2.2 | Onboarding — Studio | Onboarding |
 | 2.3 | Onboarding — Market | Onboarding |
+| 2.4 | Onboarding — Plan Overview | Onboarding |
 | 3.1 | Projects List | Dashboard |
 | 3.2 | New Project Modal | Dashboard |
 | 4.1 | Project Overview | Project |
