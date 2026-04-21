@@ -139,23 +139,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/projects', request.url))
   }
 
-  // 4. Trial / subscription gate
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('status, trial_ends_at')
-    .eq('user_id', user.id)
-    .single()
-
-  const trialExpired =
-    sub?.trial_ends_at != null && sub.trial_ends_at < new Date().toISOString()
-  const lapsed = ['canceled', 'past_due', 'incomplete_expired'].includes(sub?.status ?? '')
-  const needsBilling =
-    (trialExpired && sub?.status !== 'active') || lapsed
-
-  const isBillingPath = path.startsWith('/billing')
-  if (needsBilling && !isBillingPath && !isSignOut) {
-    return NextResponse.redirect(new URL('/billing', request.url))
-  }
+  // No app-wide subscription gate — free plan has indefinite access.
+  // PDF export and shareable link export are gated inside their server actions.
+  // See billing.md § Free vs Pro gating.
 
   return response
 }
@@ -189,9 +175,9 @@ CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   status text NOT NULL CHECK (status IN (
-    'trialing','active','past_due','canceled','incomplete','incomplete_expired'
+    'active','past_due','canceled','incomplete','incomplete_expired'
   )),
-  trial_ends_at timestamptz,
+  -- no trial_ends_at — free plan is indefinite, no trial period
   current_period_end timestamptz,
   stripe_customer_id text UNIQUE,
   stripe_subscription_id text UNIQUE,
@@ -199,6 +185,7 @@ CREATE TABLE public.subscriptions (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+-- Note: free users have no row in this table. Only Pro subscribers have a row.
 CREATE INDEX subscriptions_user_id_idx ON public.subscriptions (user_id);
 
 -- Trigger: create profile on auth.users insert

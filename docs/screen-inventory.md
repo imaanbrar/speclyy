@@ -115,8 +115,8 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 **Elements:** Name, studio name, market (editable), profile photo (optional), save button.
 
 ### 6.2 Subscription & Billing
-**Purpose:** Manage plan, trial status, payment.
-**Elements:** Current plan badge (Trial / Active / Expired), trial days remaining (out of 7), billing interval toggle (Monthly $37 / Annual $29/mo — 30% off), upgrade/manage billing CTA (Stripe), promo code field.
+**Purpose:** Manage plan and payment.
+**Elements:** Current plan badge (Free / Pro), billing interval toggle (Monthly $37 / Annual $29/mo — 30% off), upgrade CTA for free users / manage billing CTA for Pro users (Stripe Customer Portal), promo code field.
 
 ---
 

@@ -41,27 +41,28 @@ flowchart TD
 
 ### Plans
 
-| Plan | Stripe Price ID | Price | Trial | Features |
-|---|---|---|---|---|
-| Pro Monthly | `price_xxx_monthly` | $37/month | 7 days (no card required) | Full access |
-| Pro Annual | `price_xxx_annual` | $29/month (billed annually, $348/yr — 30% off) | 7 days (no card required) | Full access |
+| Plan | Stripe Price ID | Price | Features |
+|---|---|---|---|
+| Free | — (no Stripe record) | $0 | Full app access; PDF export gated (blurred preview) |
+| Pro Monthly | `price_xxx_monthly` | $37/month | Full access including PDF + shareable link export |
+| Pro Annual | `price_xxx_annual` | $29/month billed annually ($348/yr — 30% off) | Full access including PDF + shareable link export |
 
-> Price IDs are stored in env vars (`STRIPE_PRICE_ID_PRO_MONTHLY`, `STRIPE_PRICE_ID_PRO_ANNUAL`), not hardcoded. The plan selection is passed from the client to `createCheckoutSession` and resolved to the correct env var server-side.
+> Price IDs are stored in env vars (`STRIPE_PRICE_ID_PRO_MONTHLY`, `STRIPE_PRICE_ID_PRO_ANNUAL`), not hardcoded. The interval selection is passed from the client to `createCheckoutSession` and resolved server-side.
 
 ### Subscription states
 
-Stripe is the source of truth. The `subscriptions` table mirrors Stripe state; webhooks keep it in sync.
+Free users have no row in `subscriptions`. Pro users have a Stripe-backed row.
 
-| Stripe status | `subscriptions.status` | App access |
+| Stripe status | `subscriptions.status` | PDF export |
 |---|---|---|
-| `trialing` | `trialing` | Full access until `trial_ends_at` |
-| `active` | `active` | Full access |
-| `past_due` | `past_due` | Locked → `/billing` |
-| `canceled` | `canceled` | Locked → `/billing` |
-| `incomplete` | `incomplete` | Locked (payment not confirmed) |
-| `incomplete_expired` | `incomplete_expired` | Locked |
+| *(no row)* | — | Blocked — blurred preview shown |
+| `active` | `active` | Allowed |
+| `past_due` | `past_due` | Blocked — upgrade prompt shown |
+| `canceled` | `canceled` | Blocked — upgrade prompt shown |
+| `incomplete` | `incomplete` | Blocked (payment not confirmed) |
+| `incomplete_expired` | `incomplete_expired` | Blocked |
 
-Trial expiry is evaluated in middleware: if `trial_ends_at < now()` **and** `status !== 'active'`, the user is gated to `/billing`.
+The app-wide middleware gate is removed. Access control lives at the export action: if the user has no active subscription, the PDF render returns a blurred preview and an upgrade CTA instead of a download.
 
 ---
 
@@ -69,8 +70,8 @@ Trial expiry is evaluated in middleware: if `trial_ends_at < now()` **and** `sta
 
 ### Entry points
 
-- **Paywall redirect** — middleware detects `needsBilling = true` → redirects to `/billing`
-- **Upgrade CTA** — button in account settings while on trial
+- **PDF export gate** — export action checks subscription status; if not active, returns blurred preview + upgrade CTA
+- **Upgrade CTA** — button in account settings or anywhere the blurred preview appears
 
 ### Session creation
 
@@ -98,9 +99,7 @@ export async function createCheckoutSession(interval: 'monthly' | 'annual') {
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=1`,
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_end: sub?.status === 'trialing' ? undefined : 'now',  // don't re-trial
-    },
+    // no trial — free plan is indefinite, Pro starts immediately on payment
     metadata: { userId: user.id },  // fallback if customer lookup fails in webhook
   })
 
@@ -213,30 +212,44 @@ Stripe retries failed webhook deliveries (non-2xx response) with exponential bac
 
 ---
 
-## Trial + lapse states
+## Free vs Pro gating
 
-### Trial start
+### Gate location
 
-Created on `checkout.session.completed` for new users. `trial_ends_at` is set from `subscription.trial_end` on the Stripe subscription object.
+The gate is **not** in middleware. It lives inside the PDF export server action:
 
-### Trial expiry
-
-Stripe fires `customer.subscription.updated` with `status: past_due` or `customer.subscription.deleted` when trial ends without a payment method. If the user added a card during trial, Stripe automatically charges at trial end and fires `invoice.payment_succeeded` → `status = active`.
-
-Middleware evaluates trial expiry independently of Stripe status:
 ```ts
-const trialExpired = sub?.trial_ends_at != null && sub.trial_ends_at < new Date().toISOString()
-const lapsed = ['canceled', 'past_due', 'incomplete_expired'].includes(sub?.status ?? '')
-const needsBilling = (trialExpired && sub?.status !== 'active') || lapsed
+// app/(export)/export/actions.ts
+export async function exportSpecPDF(projectId: string) {
+  const supabase = createServerClient(...)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .maybeSingle()  // free users have no row
+
+  const isPro = sub?.status === 'active'
+  if (!isPro) {
+    return { gated: true }  // client renders blurred preview + upgrade CTA
+  }
+
+  // ... generate and return PDF
+}
 ```
+
+### Blurred preview
+
+When `gated: true` is returned, the client renders the PDF preview with a CSS blur filter and overlays an upgrade CTA. The designer sees the layout of their spec — enough to know the output is valuable — but cannot download it.
 
 ### What gets locked
 
-When `needsBilling = true`, middleware redirects every authenticated non-`/billing` request to `/billing`. Existing project data is preserved — nothing is deleted. The designer can resubscribe and resume immediately.
+Only PDF export and shareable link export are gated. All other features (projects, specs, product library, URL extraction) remain fully accessible on the free plan indefinitely. Project data is never deleted.
 
-### Grace period
+### Lapsed Pro (payment failure)
 
-`past_due` subscriptions are locked immediately (no grace period). Stripe handles dunning (retry emails) independently.
+If a Pro subscription lapses (`past_due`, `canceled`), the user reverts to free plan behaviour — PDF export is gated again. Stripe handles dunning (retry emails) independently.
 
 ---
 
@@ -284,7 +297,8 @@ See [operations.md](operations.md) for the full observability setup.
 ## Open questions
 
 - **Stripe Tax** — not yet configured. Will need to enable before expanding to US states with SaaS tax requirements.
-- **Plan switching (monthly ↔ annual)** — post-MVP. At MVP, designers pick an interval at checkout; changing interval requires canceling and re-subscribing.
+- **Plan switching (monthly ↔ annual)** — post-MVP. At MVP, designers pick an interval at checkout; changing interval requires canceling and re-subscribing via the customer portal.
+- **Additional gated features** — shareable link export is gated at the action level, same pattern as PDF export.
 - **Team / seat billing** — not in scope for MVP.
 
 ---

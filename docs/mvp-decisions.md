@@ -28,11 +28,11 @@ MVP ships with just enough data to make the 5 must-win workflows work (e.g. Kohl
 ---
 
 ## 4. Business Model
-**Open beta + subscription (monthly or annual) + 7-day free trial.**
+**Open beta + freemium (Free + Pro).**
 - Anyone can sign up (no waitlist, no invite codes)
-- 7-day free trial on signup — no credit card required
-- Two billing options after trial: monthly ($37/mo) or annual ($29/mo, billed yearly — 30% off)
-- Promo codes available to grant free access for a defined period (e.g. community partnerships, influencer campaigns)
+- Free plan: full app access — create projects, build specs, use the product library. PDF export is gated (blurred preview shown so the designer sees exactly what they're unlocking).
+- Pro plan: unlocks PDF export + shareable link export. Two billing intervals: monthly ($37/mo) or annual ($29/mo billed yearly — 30% off).
+- Promo codes available to grant Pro access for a defined period (e.g. community partnerships, influencer campaigns)
 
 ---
 
@@ -54,11 +54,18 @@ Designers can save/reuse products across projects. Not in scope for MVP launch. 
 ---
 
 ## 7. Pricing
-**One tier, two billing intervals.**
-- 7-day free trial — no credit card required
-- Pro Monthly: $37/month
-- Pro Annual: $29/month, billed annually (30% off vs. monthly)
-- Promo codes override billing for a defined free period
+**Two plans: Free and Pro.**
+
+| | Free | Pro |
+|---|---|---|
+| Projects & specs | Unlimited | Unlimited |
+| URL → spec extraction | Yes | Yes |
+| Product library | Yes | Yes |
+| PDF export | Blurred preview (upgrade prompt) | Full download |
+| Shareable link export | No | Yes |
+| Price | $0 | $37/mo or $29/mo billed annually (30% off) |
+
+- Promo codes grant Pro access for a defined period
 
 ---
 
@@ -81,4 +88,4 @@ After Google sign-in, new users go through a short setup before reaching the das
 2. Studio name
 3. Market (Los Angeles / New York / Dallas / Calgary)
 
-Then: dashboard with empty state + "Create your first project" prompt. The 7-day free trial starts automatically at sign-up — no card required, no plan picked up front. Designers choose monthly ($37) or annual ($29/mo billed yearly) in Stripe Checkout when they upgrade (either before trial ends or after paywall).
+Then: dashboard with empty state + "Create your first project" prompt. No trial period — free plan is indefinite. Designers use the full app for free and hit the paywall only when they try to export a PDF (shown a blurred preview with an upgrade prompt). They then choose monthly ($37) or annual ($29/mo billed yearly) in Stripe Checkout.

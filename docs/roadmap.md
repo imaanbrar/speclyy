@@ -153,7 +153,7 @@ Continuous improvements — pick up when the relevant feature is being worked.
 | 🔲 **OG images** | `/public/og-default.png` placeholder. Generate real branded OG images for social sharing. |
 | 🔲 **Privacy policy + Terms pages** | `pages/privacy.astro` and `pages/terms.astro` exist as stubs. Write actual content before launch. |
 | 🔲 **`@astrojs/sitemap`** | Add sitemap generation when content pages are added. One integration, one config line. |
-| 🔲 **Pricing toggle** | `PricingToggle.tsx` island for interactive monthly/annual switch on the marketing pricing card. Current card displays both prices statically. |
+| 🔲 **Pricing toggle** | `PricingToggle.tsx` island for interactive monthly/annual switch on the Pro plan card. Current card displays the annual price with a static note for monthly. |
 | 🔲 **Testimonials section** | Add a social proof section with real designer quotes once early users are onboarded. |
 | 🔲 **Self-hosted fonts** | Currently loading Inter from Google Fonts. Self-host in `public/fonts/` for GDPR compliance and faster load (no Google DNS lookup). |
 
