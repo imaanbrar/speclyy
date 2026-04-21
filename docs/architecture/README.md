@@ -36,10 +36,10 @@ See [adr/README.md](adr/README.md).
   - [scraper/bulk-crawl.md](scraper/bulk-crawl.md) — admin-triggered brand crawls, URL discovery, daily batching, admin API
   - [scraper/performance.md](scraper/performance.md) — browser pool, pre-warm strategies, cache flywheel
   - [scraper/failure-tracking.md](scraper/failure-tracking.md) — failure taxonomy, schema, Axiom queries, feedback loop
-- [billing.md](billing.md) — **stub** — Stripe checkout, webhooks, trial/lapse, promo codes
-- [security.md](security.md) — **stub** — threat model, secrets, RLS discipline, data retention
-- [operations.md](operations.md) — **stub** — observability, SLOs, alerting, runbooks
-- [deployments.md](deployments.md) — **stub** — environments, CI/CD, migration promotion, rollout/rollback
+- [billing.md](billing.md) — Stripe checkout, webhooks, idempotency, trial/lapse states, promo codes
+- [security.md](security.md) — threat model, secrets management, trust boundaries, RLS discipline, data retention
+- [operations.md](operations.md) — observability stack, SLOs, alerting, runbooks, backup & restore
+- [deployments.md](deployments.md) — environments, CI/CD, migration promotion, rollout/rollback, secrets
 
 ### Diagrams
 *(none yet — added as components are designed)*
