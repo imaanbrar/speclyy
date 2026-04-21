@@ -28,6 +28,7 @@ See [adr/README.md](adr/README.md).
 - [auth.md](auth.md) — sign-in flow, session lifecycle, middleware gates, data model, RLS
 - [database.md](database.md) — full schema, dual-client pattern, migrations, RLS policies, query patterns
 - [storage.md](storage.md) — buckets, upload flows, image transforms, signed URLs, R2 migration path
+- [estimated-infra-costs.md](estimated-infra-costs.md) — per-component cost breakdown at 500 designers, unit economics, upgrade triggers
 - [scraper/README.md](scraper/README.md) — scraper overview and index
   - [scraper/on-demand.md](scraper/on-demand.md) — cache check, Inngest steps, Playwright stealth, Claude extraction, async + failure UX
   - [scraper/bulk-crawl.md](scraper/bulk-crawl.md) — admin-triggered brand crawls, URL discovery, daily batching, admin API
