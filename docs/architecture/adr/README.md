@@ -34,4 +34,3 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0013](0013-bulk-crawl.md) | Bulk crawl design | Accepted |
 | [0014](0014-log-store.md) | Log store — Axiom | Accepted |
 | [0015](0015-marketing-site.md) | Marketing site — Astro in monorepo, deployed on Vercel | Accepted |
-| [0016](0016-shared-packages-and-moodboard-app.md) | Shared packages (`@speclyy/db`, `@speclyy/auth`) and standalone mood board app | Accepted |

@@ -31,9 +31,8 @@ Environments, CI/CD, migration promotion, rollout/rollback, and secrets manageme
 ```
 speclyy/
 ├── apps/
-│   ├── web/          → Next.js app (app.speclyy.com) — designer workspace
-│   ├── moodboard/    → Next.js app (moodboards.speclyy.com) — standalone mood boards
-│   └── marketing/    → Astro site (speclyy.com) — landing
+│   ├── web/          → Next.js app (app.speclyy.com)
+│   └── marketing/    → Astro site (speclyy.com)
 ├── packages/
 │   ├── design-system/  → shared UI (tokens, components, Tailwind preset)
 │   ├── db/             → shared Drizzle schema + Postgres client
@@ -41,14 +40,11 @@ speclyy/
 └── pnpm-workspace.yaml
 ```
 
-Vercel detects which app changed on push and only rebuilds the affected project. Three separate Vercel projects:
+Vercel detects which app changed on push and only rebuilds the affected project. Two separate Vercel projects:
 - `speclyy-web` → `apps/web/`
-- `speclyy-moodboard` → `apps/moodboard/`
 - `speclyy-marketing` → `apps/marketing/`
 
 **Shared packages are not deployed.** They're consumed via `workspace:*` and bundled into each app at build time. A change to `packages/db` or `packages/auth` triggers a rebuild of every app that imports them — Vercel's monorepo detection handles this via package graph traversal.
-
-See [ADR-0016](adr/0016-shared-packages-and-moodboard-app.md) for the rationale behind extracting `@speclyy/db` and `@speclyy/auth` and splitting mood boards into their own deployed app.
 
 ---
 
@@ -99,16 +95,6 @@ Vercel deploys automatically on merge to `main`. No separate CD pipeline — Ver
 - **Deploy:** automatic on push to `main` (production) or any branch (preview)
 - **Env vars:** set in Vercel dashboard, scoped to production / preview / development
 - **Rollback:** Vercel dashboard → Deployments → Instant Rollback (no redeploy needed)
-
-### Vercel — Mood board app
-
-- **Project:** `speclyy-moodboard`
-- **Root directory:** `apps/moodboard`
-- **Build command:** `pnpm build`
-- **Domain:** `moodboards.speclyy.com`
-- **Deploy:** automatic on push to `main` (production) or any branch (preview)
-- **Env vars:** subset of `speclyy-web` — Supabase URL + anon key, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL=https://moodboards.speclyy.com`. No Stripe or Inngest vars (mood boards don't trigger scrapes or billing flows of their own).
-- **Rollback:** Vercel dashboard → Deployments → Instant Rollback
 
 ### Vercel — Astro marketing site
 
@@ -188,8 +174,7 @@ Supabase does not support schema rollback. The strategy is:
 | `INNGEST_EVENT_KEY` | Production + Preview | — | |
 | `INNGEST_SIGNING_KEY` | Production + Preview | — | |
 | `ADMIN_SECRET` | Production + Preview | — | Shared secret for admin APIs |
-| `NEXT_PUBLIC_APP_URL` | All | — | `https://app.speclyy.com` for `speclyy-web`, `https://moodboards.speclyy.com` for `speclyy-moodboard` |
-| `NEXT_PUBLIC_COOKIE_DOMAIN` | All | — | `.speclyy.com` — shared auth cookie across subdomains |
+| `NEXT_PUBLIC_APP_URL` | All | — | `https://app.speclyy.com` prod |
 | `ANTHROPIC_API_KEY` | — | Fly secret | Scraper only |
 
 ### Secret injection

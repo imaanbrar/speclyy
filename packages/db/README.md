@@ -1,20 +1,21 @@
 # @speclyy/db
 
-Shared database layer. Every app that talks to Postgres imports from here.
+Shared database layer. Callers that talk to Postgres import from here.
 
 ## Contents
 
-- `src/schema/` — Drizzle table definitions (one file per domain: `profiles`, `projects`, `moodboards`, `subscriptions`, …).
+- `src/schema/` — Drizzle table definitions (one file per domain: `profiles`, `projects`, `subscriptions`, …).
 - `src/client.ts` — Drizzle client factory. Accepts a `DATABASE_URL` and returns a typed client.
 - `src/index.ts` — Public re-exports.
 
 ## Usage
 
 ```ts
-import { db } from '@speclyy/db/client'
-import { moodboards } from '@speclyy/db/schema'
+import { createDbClient } from '@speclyy/db/client'
+import { projects } from '@speclyy/db/schema'
 
-const rows = await db.select().from(moodboards).where(...)
+const db = createDbClient(process.env.DATABASE_URL!)
+const rows = await db.select().from(projects).where(...)
 ```
 
 ## Rules

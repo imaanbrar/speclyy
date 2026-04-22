@@ -6,4 +6,3 @@
 //   - subscriptions
 //   - projects, project_groups, project_items
 //   - scrape_cache, global_products
-//   - moodboards, moodboard_items

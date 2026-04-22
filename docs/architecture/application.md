@@ -1,14 +1,12 @@
 # Application — Architecture
 
-How the Next.js designer app (`apps/web`, deployed at `app.speclyy.com`) is structured and how its core patterns work. For the *why* behind framework and hosting choices, see [ADR-0001](adr/0001-application-framework.md) and [ADR-0002](adr/0002-hosting-platform.md). For the standalone mood board app (`apps/moodboard`, deployed at `moodboards.speclyy.com`), see [moodboard.md](moodboard.md) and [ADR-0016](adr/0016-shared-packages-and-moodboard-app.md).
+How the Next.js app (`apps/web`, deployed at `app.speclyy.com`) is structured and how its core patterns work. For the *why* behind framework and hosting choices, see [ADR-0001](adr/0001-application-framework.md) and [ADR-0002](adr/0002-hosting-platform.md).
 
-Both apps share three workspace packages:
+The app consumes three workspace packages:
 
 - `@speclyy/db` — Drizzle schema + Postgres client.
 - `@speclyy/auth` — Supabase browser/server clients + composable middleware gates.
 - `@speclyy/design-system` — UI tokens, components, Tailwind preset.
-
-Sections below describe the designer app specifically. The mood board app follows the same Next.js patterns but with a narrower scope (no scraper, no billing gate, no onboarding flow).
 
 ---
 
