@@ -1,6 +1,26 @@
 # Auth — Architecture
 
-How authentication works in Speclyy, end-to-end. For the *why* behind these choices, see [ADR-0005](adr/0005-auth-provider.md), [ADR-0006](adr/0006-session-strategy.md), and [ADR-0007](adr/0007-auth-data-model.md).
+How authentication works in Speclyy, end-to-end. For the *why* behind these choices, see [ADR-0005](adr/0005-auth-provider.md), [ADR-0006](adr/0006-session-strategy.md), [ADR-0007](adr/0007-auth-data-model.md), and [ADR-0019](adr/0019-multi-app-architecture.md).
+
+---
+
+## Project boundary (shared auth, per-app data)
+
+Speclyy is the first app; more will follow under `*.speclyy.com`. The data architecture is designed from day one so a second app is a wiring task, not a migration. See [ADR-0019](adr/0019-multi-app-architecture.md).
+
+**Shared auth project** (one Supabase project) owns account-level data used by every app:
+
+- `auth.users` (Supabase-managed)
+- `public.profiles` — app-agnostic identity, 1:1 with `auth.users`
+- `public.organizations` — account-level entity with a `type` discriminator (`individual`, `studio`, `firm`, `team`, …)
+- `public.organization_members` — membership join, supports future teammate invites
+- `public.subscriptions` — per-user subscriptions with a jsonb `entitlements` column keyed by app
+
+**Per-app databases** hold app-specific data (projects, documents, app state) and reference `user_id` / `organization_id` as opaque UUIDs. No cross-database foreign keys. Apps verify Supabase JWTs to establish `auth.uid()` and read membership/entitlements from the shared project.
+
+**Cookie domain.** Supabase session cookies are set on `.speclyy.com` so any subdomain app receives the session automatically (configured in Supabase dashboard when prod apex is wired up).
+
+**UI copy vs schema.** Speclyy's UI uses the word "Studio"; the schema calls it an `organization`. The onboarding studio step writes `type = 'studio'`; Skip writes `type = 'individual'`. Users can convert individual → studio later from Settings.
 
 ---
 
@@ -20,9 +40,9 @@ flowchart TB
     Cb["/auth/callback route"]
   end
 
-  subgraph Supabase
+  subgraph Supabase["Shared Auth Project (Supabase)"]
     Auth[Supabase Auth / GoTrue]
-    DB[(Postgres<br/>auth.users<br/>public.profiles<br/>public.subscriptions)]
+    DB[(Postgres<br/>auth.users<br/>public.profiles<br/>public.organizations<br/>public.organization_members<br/>public.subscriptions)]
   end
 
   Google[Google OAuth]
@@ -51,8 +71,10 @@ flowchart TB
 | **Supabase Auth (GoTrue)** | Runs Google OAuth + email OTP, issues JWT access + refresh tokens, manages `auth.users`. |
 | **`@supabase/ssr`** | Next.js client library. Three factories: `createBrowserClient`, `createServerClient` (RSC / Server Actions), and a middleware variant that rewrites cookies. |
 | **`middleware.ts`** | Runs on every non-static request. Refreshes session and enforces route gates. |
-| **`public.profiles`** | App-side user record, 1:1 with `auth.users`. Created via DB trigger on signup. |
-| **`public.subscriptions`** | Trial + Stripe state per user. Written by the Stripe webhook handler using the service-role key. |
+| **`public.profiles`** | App-agnostic user record, 1:1 with `auth.users`. Created via DB trigger on signup. |
+| **`public.organizations`** | Account-level entity (studio/firm/team/individual) with a `type` discriminator. |
+| **`public.organization_members`** | Profile ↔ organization join with `role`. Always ≥1 row per profile; supports future invites. |
+| **`public.subscriptions`** | Stripe state per user. `entitlements` jsonb keys which apps/plans are unlocked. Written by the Stripe webhook handler using the service-role key. |
 
 ---
 
@@ -180,25 +202,15 @@ export const config = {
 
 ## Data model
 
-See [ADR-0016](adr/0016-onboarding-data-model-revision.md) for rationale. Studios are a first-class entity (1 studio → many profiles) to support future teammate invites.
+See [ADR-0019](adr/0019-multi-app-architecture.md) for rationale. All tables below live in the shared auth project — they are account-level and used by every app.
 
 ```sql
 -- auth.users is Supabase-managed. Never modify.
-
-CREATE TABLE public.studios (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text NOT NULL,
-  size       text CHECK (size IN ('solo','2_5','6_10','11_plus')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
--- No UNIQUE on name — two studios may legitimately share a name.
 
 CREATE TABLE public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   first_name text,
   last_name text,
-  studio_id uuid REFERENCES public.studios(id) ON DELETE SET NULL,
   market text,  -- free text; canonical launch values produced by the UI
   onboarding_completed_at timestamptz,
   is_onboarded boolean GENERATED ALWAYS AS (onboarding_completed_at IS NOT NULL) STORED,
@@ -206,11 +218,32 @@ CREATE TABLE public.profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX profiles_is_onboarded_idx ON public.profiles (is_onboarded);
-CREATE INDEX profiles_studio_id_idx  ON public.profiles (studio_id);
 
--- Invariant: every completed-onboarding profile has a studio_id.
--- The studio step's Skip action auto-creates a studio named
--- "{first_name} {last_name}" rather than leaving studio_id null.
+CREATE TABLE public.organizations (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       text NOT NULL,
+  type       text NOT NULL CHECK (type IN ('individual','studio','firm','team')),
+  size       text CHECK (size IN ('solo','2_5','6_10','11_plus')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- No UNIQUE on name — two orgs may legitimately share a name.
+-- For Speclyy v1 only 'individual' and 'studio' are produced.
+CREATE INDEX organizations_type_idx ON public.organizations (type);
+
+CREATE TABLE public.organization_members (
+  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  user_id         uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role            text NOT NULL CHECK (role IN ('owner','admin','member')) DEFAULT 'owner',
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (organization_id, user_id)
+);
+CREATE INDEX organization_members_user_id_idx ON public.organization_members (user_id);
+
+-- Invariant: every completed-onboarding profile has exactly one organization_members
+-- row. The studio step creates an organization with type='studio'; Skip creates one
+-- with type='individual' and name "{first_name} {last_name}". Either way the profile
+-- is linked via organization_members with role='owner'.
 
 CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -223,13 +256,18 @@ CREATE TABLE public.subscriptions (
   stripe_customer_id text UNIQUE,
   stripe_subscription_id text UNIQUE,
   promo_code_id uuid,
+  entitlements jsonb NOT NULL DEFAULT '{}'::jsonb,
+  -- Shape: { "speclyy": { "plan": "pro" }, "<future-app>": { "plan": "starter" } }
+  -- Single-app and bundle subscriptions look identical to apps querying entitlements.
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
--- Note: free users have no row in this table. Only Pro subscribers have a row.
+-- Note: free users have no row in this table. Only paid subscribers have a row.
 CREATE INDEX subscriptions_user_id_idx ON public.subscriptions (user_id);
 
--- Trigger: create profile on auth.users insert
+-- Trigger: create blank profile on auth.users insert.
+-- Organization creation is handled by the onboarding Server Actions, not here,
+-- because the org's type depends on whether the user completes or skips the studio step.
 CREATE FUNCTION public.handle_new_user() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -258,17 +296,31 @@ CREATE POLICY "profiles: self read" ON public.profiles
 CREATE POLICY "profiles: self update" ON public.profiles
   FOR UPDATE USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
-ALTER TABLE public.studios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "studios: member read" ON public.studios
+CREATE POLICY "organizations: member read" ON public.organizations
   FOR SELECT USING (
-    id IN (SELECT studio_id FROM public.profiles WHERE id = auth.uid())
+    id IN (SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid())
   );
 
-CREATE POLICY "studios: member update" ON public.studios
+CREATE POLICY "organizations: admin update" ON public.organizations
   FOR UPDATE USING (
-    id IN (SELECT studio_id FROM public.profiles WHERE id = auth.uid())
+    id IN (
+      SELECT organization_id FROM public.organization_members
+      WHERE user_id = auth.uid() AND role IN ('owner','admin')
+    )
   );
+
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "organization_members: self read" ON public.organization_members
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR organization_id IN (
+      SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()
+    )
+  );
+-- INSERT/UPDATE performed by Server Actions (onboarding, future invites); no user-facing write policy.
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
@@ -324,7 +376,8 @@ Downstream tables (`projects`, `groups`, `items`, etc.) follow the same pattern,
 - [ADR-0005 — Auth provider: Supabase Auth](adr/0005-auth-provider.md)
 - [ADR-0006 — Session strategy: cookie SSR via `@supabase/ssr`](adr/0006-session-strategy.md)
 - [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md) (data-model section superseded)
-- [ADR-0016 — Onboarding data model revision: studios entity + free-text market](adr/0016-onboarding-data-model-revision.md)
+- [ADR-0016 — Onboarding data model revision: studios entity + free-text market](adr/0016-onboarding-data-model-revision.md) (table naming superseded by 0019; structural decisions preserved)
+- [ADR-0019 — Multi-app architecture: shared auth project + organizations entity](adr/0019-multi-app-architecture.md)
 - [Supabase Auth with Next.js App Router](https://supabase.com/docs/guides/auth/server-side/nextjs)
 - [`screen-inventory.md`](../screen-inventory.md) §1–2 (auth + onboarding)
 - [`user-flows.md`](../user-flows.md) "Supporting Flow — First-time setup"

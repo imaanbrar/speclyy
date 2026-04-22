@@ -1,8 +1,9 @@
 # ADR-0016: Onboarding data model revision — studios entity + free-text market
 
-- **Status:** Accepted
+- **Status:** Accepted — table renamed from `studios` to `organizations` by [ADR-0019](0019-multi-app-architecture.md); structural decisions (first-class entity, no `UNIQUE(name)`, Skip auto-creates, profile-has-org invariant) remain current.
 - **Date:** 2026-04-22
 - **Supersedes:** the data-model section of [ADR-0007](0007-auth-data-model.md). The middleware gate chain from ADR-0007 remains current.
+- **Partially superseded by:** [ADR-0019](0019-multi-app-architecture.md) — `studios` is now `organizations` with a `type` discriminator, and membership lives in `organization_members` rather than `profiles.studio_id`.
 
 ## Context
 
