@@ -180,21 +180,37 @@ export const config = {
 
 ## Data model
 
+See [ADR-0016](adr/0016-onboarding-data-model-revision.md) for rationale. Studios are a first-class entity (1 studio → many profiles) to support future teammate invites.
+
 ```sql
 -- auth.users is Supabase-managed. Never modify.
+
+CREATE TABLE public.studios (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       text NOT NULL,
+  size       text CHECK (size IN ('solo','2_5','6_10','11_plus')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- No UNIQUE on name — two studios may legitimately share a name.
 
 CREATE TABLE public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   first_name text,
   last_name text,
-  studio_name text,
-  market text CHECK (market IN ('los_angeles','new_york','dallas','calgary')),
+  studio_id uuid REFERENCES public.studios(id) ON DELETE SET NULL,
+  market text,  -- free text; canonical launch values produced by the UI
   onboarding_completed_at timestamptz,
   is_onboarded boolean GENERATED ALWAYS AS (onboarding_completed_at IS NOT NULL) STORED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX profiles_is_onboarded_idx ON public.profiles (is_onboarded);
+CREATE INDEX profiles_studio_id_idx  ON public.profiles (studio_id);
+
+-- Invariant: every completed-onboarding profile has a studio_id.
+-- The studio step's Skip action auto-creates a studio named
+-- "{first_name} {last_name}" rather than leaving studio_id null.
 
 CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -241,6 +257,18 @@ CREATE POLICY "profiles: self read" ON public.profiles
 
 CREATE POLICY "profiles: self update" ON public.profiles
   FOR UPDATE USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+
+ALTER TABLE public.studios ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "studios: member read" ON public.studios
+  FOR SELECT USING (
+    id IN (SELECT studio_id FROM public.profiles WHERE id = auth.uid())
+  );
+
+CREATE POLICY "studios: member update" ON public.studios
+  FOR UPDATE USING (
+    id IN (SELECT studio_id FROM public.profiles WHERE id = auth.uid())
+  );
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
@@ -295,7 +323,8 @@ Downstream tables (`projects`, `groups`, `items`, etc.) follow the same pattern,
 
 - [ADR-0005 — Auth provider: Supabase Auth](adr/0005-auth-provider.md)
 - [ADR-0006 — Session strategy: cookie SSR via `@supabase/ssr`](adr/0006-session-strategy.md)
-- [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md)
+- [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md) (data-model section superseded)
+- [ADR-0016 — Onboarding data model revision: studios entity + free-text market](adr/0016-onboarding-data-model-revision.md)
 - [Supabase Auth with Next.js App Router](https://supabase.com/docs/guides/auth/server-side/nextjs)
 - [`screen-inventory.md`](../screen-inventory.md) §1–2 (auth + onboarding)
 - [`user-flows.md`](../user-flows.md) "Supporting Flow — First-time setup"

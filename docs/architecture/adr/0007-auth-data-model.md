@@ -1,6 +1,6 @@
 # ADR-0007: Auth data model and middleware gates
 
-- **Status:** Accepted
+- **Status:** Accepted (data-model section superseded by [ADR-0016](0016-onboarding-data-model-revision.md); middleware gate chain still current)
 - **Date:** 2026-04-20
 
 ## Context

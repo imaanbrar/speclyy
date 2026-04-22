@@ -68,49 +68,76 @@ The app-wide middleware gate is removed. Access control lives at the export acti
 
 ## Checkout flow
 
+Rendered inline using **Stripe Elements** — no redirect to Stripe's domain. See [ADR-0018](adr/0018-payment-surface.md) for rationale.
+
 ### Entry points
 
-- **PDF export gate** — export action checks subscription status; if not active, returns blurred preview + upgrade CTA
-- **Upgrade CTA** — button in account settings or anywhere the blurred preview appears
+- **Onboarding step 4 (Plan)** — selecting Pro → `/onboarding/checkout`
+- **PDF export paywall** — upgrade CTA on blurred preview
+- **Upgrade CTA** — account settings
 
-### Session creation
+### Server: create subscription + return `client_secret`
 
 ```ts
 // app/(billing)/billing/actions.ts
 'use server'
-export async function createCheckoutSession(interval: 'monthly' | 'annual') {
+export async function createProSubscription(interval: 'monthly' | 'annual') {
   const supabase = createServerClient(...)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: sub } = await supabase
+  // Reuse or create Stripe customer
+  const { data: existing } = await supabase
     .from('subscriptions')
     .select('stripe_customer_id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
+
+  const customerId = existing?.stripe_customer_id
+    ?? (await stripe.customers.create({
+          email: user.email!,
+          metadata: { userId: user.id },
+        })).id
 
   const priceId = interval === 'annual'
     ? process.env.STRIPE_PRICE_ID_PRO_ANNUAL
     : process.env.STRIPE_PRICE_ID_PRO_MONTHLY
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: sub.stripe_customer_id ?? undefined,  // reuse if exists
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=1`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=1`,
-    allow_promotion_codes: true,
-    // no trial — free plan is indefinite, Pro starts immediately on payment
-    metadata: { userId: user.id },  // fallback if customer lookup fails in webhook
+  const subscription = await stripe.subscriptions.create({
+    customer: customerId,
+    items: [{ price: priceId }],
+    payment_behavior: 'default_incomplete',
+    payment_settings: { save_default_payment_method: 'on_subscription' },
+    expand: ['latest_invoice.payment_intent'],
+    metadata: { userId: user.id },
   })
 
-  redirect(session.url!)
+  const clientSecret = (subscription.latest_invoice as Stripe.Invoice)
+    .payment_intent as Stripe.PaymentIntent
+  return { clientSecret: clientSecret.client_secret!, subscriptionId: subscription.id }
+}
+```
+
+### Client: mount PaymentElement + confirm
+
+```tsx
+// app/(billing)/checkout/CheckoutForm.tsx
+'use client'
+const stripe = useStripe()
+const elements = useElements()
+
+async function onSubmit() {
+  const { error } = await stripe!.confirmPayment({
+    elements: elements!,
+    confirmParams: { return_url: `${origin}/billing/success` },
+  })
+  // error.message rendered inline; success path handled by webhook + return_url
 }
 ```
 
 ### Success / cancel return
 
-- `?success=1` — show confirmation banner; middleware gate lifts on next navigation once webhook has updated DB (usually < 2s).
-- `?canceled=1` — show "no changes made" banner; user stays on `/billing`.
+- `/billing/success` — renders the Pro Success screen. Confirms `subscriptions.status = 'active'` before showing; if the webhook is still in flight (rare, <2s), shows a "finalizing…" state and polls.
+- User cancel (closes tab / back) — the `incomplete` subscription remains in Stripe and expires automatically via Stripe's `incomplete_expired` after 23h. No cleanup needed.
 
 No business logic on the return URL — all state changes happen via webhook.
 
@@ -169,12 +196,14 @@ export async function POST(req: Request) {
 
 | Event | Action |
 |---|---|
-| `checkout.session.completed` | Create/link Stripe customer; set `status = trialing` or `active` |
-| `customer.subscription.created` | Upsert subscription row |
-| `customer.subscription.updated` | Update `status`, `current_period_end`, `trial_ends_at` |
+| `customer.subscription.created` | Upsert subscription row with initial `status` (usually `incomplete`) |
+| `customer.subscription.updated` | Update `status`, `current_period_end` |
 | `customer.subscription.deleted` | Set `status = canceled` |
-| `invoice.payment_succeeded` | Set `status = active`, update `current_period_end` |
+| `invoice.paid` / `invoice.payment_succeeded` | Set `status = active`, update `current_period_end` |
 | `invoice.payment_failed` | Set `status = past_due` |
+| `payment_intent.succeeded` | Informational; reconcile only if subscription.updated hasn't arrived |
+
+`checkout.session.completed` is no longer used — we moved from hosted Checkout to embedded Elements ([ADR-0018](adr/0018-payment-surface.md)). `trial_ends_at` removed — free plan is indefinite, no trial.
 
 ### Idempotency
 

@@ -8,9 +8,13 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 ## 1. Auth & Entry
 
 ### 1.1 Sign-In
-**Purpose:** Entry point for all users.
-**Elements:** Speclyy logo, tagline, "Continue with Google" button, promo code field (optional, collapsible).
+**Purpose:** Entry point for all users. Single page — Google + email magic-link on the same screen.
+**Elements:** Speclyy logo, tagline, "Continue with Google" pill button, "or" divider, email input with inline "Send link" button, helper copy ("We'll email a magic link and a 6-digit code — no password."), Terms + Privacy footer links.
 **Workflow:** All workflows (gate)
+
+### 1.2 Sign-In — Verify code
+**Purpose:** For users who use the 6-digit code instead of clicking the magic link.
+**Elements:** 6-digit code input, "Resend code" button with 60s cooldown, rate-limit messaging.
 
 ---
 
@@ -20,25 +24,41 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 **Purpose:** Personalise the workspace.
 **Elements:** "What's your name?" prompt, first name + last name fields, Next button, progress indicator (1 of 4).
 
-### 2.2 Onboarding — Studio Name
-**Purpose:** Used on exported spec sheets.
-**Elements:** "What's your studio called?" prompt, studio name field, Back + Next buttons, progress indicator (2 of 4).
+### 2.2 Onboarding — Studio
+**Purpose:** Used on exported spec sheets; also establishes the `studios` record that will hold future teammates.
+**Elements:** "Where do you practice?" prompt, studio name field, **studio size** selector (Just me / 2–5 / 6–10 / 11+), Back + **Skip** + Continue, progress indicator (2 of 4).
+**Skip behavior:** auto-creates a studio named `"{first_name} {last_name}"` with null size — the profile is never left without a studio.
 
 ### 2.3 Onboarding — Your Market
 **Purpose:** Determines which local supplier inventory is surfaced in search.
-**Elements:** "Where are you based?" prompt, 4 market options (Los Angeles / New York / Dallas / Calgary), single-select cards, Back + Next buttons, progress indicator (3 of 4).
+**Elements:** "Which market do you work in?" prompt, 4 preset market cards (Los Angeles / New York / Dallas / Calgary), **"Somewhere else" card with free-text city/region input**, "Nominate your city →" link, Back + Continue buttons, progress indicator (3 of 4).
+**Storage:** `profiles.market` is free text — presets store canonical values (`los_angeles` etc.), "Somewhere else" stores the user's input verbatim.
 
-### 2.4 Onboarding — Plan Overview
-**Purpose:** Set honest expectations about the free plan before the designer reaches the dashboard. No decision required — they're already on Free.
+### 2.4 Onboarding — Plan
+**Purpose:** Choose Free (default) or upgrade to Pro at onboarding time.
 **Elements:**
-- Heading: "You're all set."
-- Subtext: "You're on the Free plan — build unlimited specs and explore the product library. When you're ready to share your work, upgrade to Pro to unlock PDF export."
-- Free vs Pro comparison table (same feature set as marketing pricing page)
-- "Compare plans" hyperlink (opens full comparison, same table)
-- Primary CTA: "Go to dashboard →" (no Back button — this is the final step)
+- Heading: "Start free. Upgrade when you're ready to share."
+- Free card (selected by default) — $0 forever, full app access, exports locked
+- Pro card — $29/mo billed annually (Save 30% badge) / $37 monthly, unlocks PDF exports + shareable client links
+- Info chip: "You can upgrade, downgrade, or cancel any time from Settings."
+- Back + primary CTA — label adapts: **"Continue with Free"** when Free is selected, **"Continue to checkout"** when Pro is selected
 - Progress indicator (4 of 4)
 
-No upgrade prompt or payment flow here — comparison is informational only.
+**Post-step:**
+- Free → Free Welcome screen (§2.5)
+- Pro → Checkout (§2.6) → Pro Success (§2.7)
+
+### 2.5 Free Welcome
+**Purpose:** Handoff screen that confirms Free is active and points at the first action.
+**Elements:** "Free · Active" eyebrow, headline "Start your first project", Pro upsell strip, primary CTA "Create your first project" → `/projects/new`.
+
+### 2.6 Checkout (Pro path)
+**Purpose:** Take payment inline with Speclyy's brand (see [ADR-0018](architecture/adr/0018-payment-surface.md)).
+**Elements:** Embedded Stripe `PaymentElement` (card, expiry, CVC, name, country, ZIP), "Save card for future billing" checkbox, primary CTA "Pay ${total} and activate Pro", "Secured by Stripe" note. Right pane: order summary with plan row, annual discount callout, "Due today" total, renewal copy.
+
+### 2.7 Pro Success
+**Purpose:** Confirm activation post-payment.
+**Elements:** "Pro · Activated" eyebrow, headline "You're all set up.", receipt card (Plan / Next billed / Receipt #), "View receipt" + "Open your workspace" CTAs → `/projects`.
 
 ---
 
@@ -137,10 +157,14 @@ No upgrade prompt or payment flow here — comparison is informational only.
 | # | Screen | Category |
 |---|--------|----------|
 | 1.1 | Sign-In | Auth |
+| 1.2 | Sign-In — Verify code | Auth |
 | 2.1 | Onboarding — Name | Onboarding |
 | 2.2 | Onboarding — Studio | Onboarding |
 | 2.3 | Onboarding — Market | Onboarding |
-| 2.4 | Onboarding — Plan Overview | Onboarding |
+| 2.4 | Onboarding — Plan | Onboarding |
+| 2.5 | Free Welcome | Onboarding |
+| 2.6 | Checkout (Pro path) | Onboarding / Billing |
+| 2.7 | Pro Success | Onboarding / Billing |
 | 3.1 | Projects List | Dashboard |
 | 3.2 | New Project Modal | Dashboard |
 | 4.1 | Project Overview | Project |
