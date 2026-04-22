@@ -10,39 +10,26 @@ const links = [
   id="nav"
   class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
          px-6 py-4 md:px-12
-         bg-white/80 backdrop-blur-md border-b border-neutral-100
-         transition-shadow duration-200"
+         bg-paper-50/85 backdrop-blur-md border-b border-[color:var(--border-1)]"
 >
-  <!-- Logo -->
-  <a href="/" class="text-lg font-bold tracking-tight text-neutral-900">
-    Speclyy
+  <a href="/" aria-label="Speclyy" class="inline-flex items-center">
+    <img src="/logos/speclyy-logo-light.png" alt="Speclyy" height="22" style="height:22px;width:auto;display:block" />
   </a>
 
-  <!-- Desktop nav links -->
   <nav class="hidden md:flex items-center gap-8">
     {links.map(link => (
-      <a
-        href={link.href}
-        class="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
-      >
-        {link.label}
-      </a>
+      <a href={link.href} class="link-quiet text-14 font-medium">{link.label}</a>
     ))}
   </nav>
 
-  <!-- CTA -->
   <div class="flex items-center gap-3">
-    <a
-      href="https://app.speclyy.com/sign-in"
-      class="hidden md:inline-flex text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
-    >
+    <a href="https://app.speclyy.com/sign-in" class="hidden md:inline-flex link-quiet text-14 font-medium">
       Sign in
     </a>
-    <a href="https://app.speclyy.com/sign-up" class="btn-primary text-sm py-2 px-4">
+    <a href="https://app.speclyy.com/sign-up" class="btn btn-primary btn-sm">
       Start free trial
     </a>
   </div>
 </header>
 
-<!-- Spacer so content isn't hidden under fixed nav -->
-<div class="h-[73px]" aria-hidden="true" />
+<div class="h-[69px]" aria-hidden="true"></div>

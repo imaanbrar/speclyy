@@ -1,19 +1,65 @@
 ---
 const year = new Date().getFullYear()
 
-const links = [
-  { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms',   href: '/terms' },
+const groups = [
+  {
+    heading: 'Product',
+    links: [
+      { label: 'How it works', href: '#how-it-works' },
+      { label: 'Features',     href: '#features' },
+      { label: 'Pricing',      href: '#pricing' },
+      { label: 'Changelog',    href: '/changelog' },
+    ],
+  },
+  {
+    heading: 'Studio',
+    links: [
+      { label: 'Markets',           href: '/markets' },
+      { label: 'For trades',        href: '/trades' },
+      { label: 'Sample spec sheet', href: '/sample' },
+    ],
+  },
+  {
+    heading: 'Company',
+    links: [
+      { label: 'About',   href: '/about' },
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms',   href: '/terms' },
+      { label: 'Contact', href: '/contact' },
+    ],
+  },
 ]
 ---
 
-<footer class="border-t border-neutral-100 px-6 py-10 md:px-12">
-  <div class="container-content flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-neutral-400">
-    <span>© {year} Speclyy. All rights reserved.</span>
-    <nav class="flex gap-6">
-      {links.map(link => (
-        <a href={link.href} class="hover:text-neutral-700 transition-colors">{link.label}</a>
-      ))}
-    </nav>
+<footer class="px-6 md:px-12 pb-10">
+  <div class="ds-container">
+    <div class="rounded-xl bg-subtle p-12 md:p-14">
+      <div class="grid gap-8 md:grid-cols-[2fr_1fr_1fr_1fr] pb-10 border-b border-[color:var(--border-2)]">
+        <div>
+          <a href="/" aria-label="Speclyy" class="inline-flex items-center">
+            <img src="/logos/speclyy-logo-light.png" alt="Speclyy" height="26" style="height:26px;width:auto;display:block" />
+          </a>
+          <p class="font-display italic text-18 text-ink-600 mt-4 max-w-xs">
+            Helping designers and studios with the daily work.
+          </p>
+        </div>
+
+        {groups.map(group => (
+          <div>
+            <h4 class="eyebrow mb-4">{group.heading}</h4>
+            <ul class="flex flex-col gap-2.5">
+              {group.links.map(link => (
+                <li><a href={link.href} class="link-quiet body-sm">{link.label}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div class="pt-6 flex flex-col md:flex-row justify-between gap-3 caption">
+        <span>© {year} Speclyy</span>
+        <span>Made for high-end residential.</span>
+      </div>
+    </div>
   </div>
 </footer>

@@ -1,0 +1,171 @@
+/* ============================================================
+   Speclyy — Component styles.
+   Ported from the web-app and marketing kits. Class-named so
+   both Astro and React can use them without a build step.
+   ============================================================ */
+
+/* ----- Buttons ----- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border-radius: var(--radius-pill);
+  font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  cursor: pointer; border: 1px solid transparent;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+  text-decoration: none; white-space: nowrap;
+}
+.btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.btn svg { width: 16px; height: 16px; }
+
+.btn-primary { background: var(--accent); color: var(--fg-on-accent); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-pressed); }
+
+.btn-dark { background: var(--ink-900); color: var(--paper-50); }
+.btn-dark:hover { background: var(--ink-800); }
+
+.btn-ghost { background: var(--bg-surface); color: var(--fg-1); border-color: var(--border-2); }
+.btn-ghost:hover { background: var(--bg-hover); }
+
+.btn-ghost-inverse { background: transparent; color: var(--fg-on-inverse); border-color: var(--border-inverse); }
+.btn-ghost-inverse:hover { background: rgba(250, 247, 242, 0.06); }
+
+.btn-text { background: transparent; color: var(--fg-1); padding: 11px 12px; }
+.btn-text:hover { color: var(--accent); }
+
+.btn-danger { background: transparent; color: var(--status-missing); border-color: var(--border-2); }
+
+.btn-icon {
+  width: 36px; height: 36px; padding: 0; justify-content: center;
+  border-radius: var(--radius-md); background: var(--bg-surface);
+  color: var(--fg-2); border-color: var(--border-2);
+}
+
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-lg { padding: 13px 26px; font-size: 14px; }
+.btn-block { width: 100%; justify-content: center; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+
+/* ----- Form fields ----- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label {
+  font-family: var(--font-body); font-size: 12px; font-weight: 600;
+  color: var(--fg-2); letter-spacing: 0.02em;
+}
+.field .helper { font-size: 12px; color: var(--fg-3); }
+.field .helper-error { color: var(--status-missing); }
+
+.input, .select, .textarea {
+  font-family: var(--font-body); font-size: 14px; color: var(--fg-1);
+  background: var(--bg-surface); border: 1px solid var(--border-3);
+  border-radius: var(--radius-md); padding: 10px 14px; outline: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  width: 100%;
+}
+.input::placeholder, .textarea::placeholder { color: var(--fg-4); }
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--accent); box-shadow: var(--ring);
+}
+.input[disabled], .select[disabled], .textarea[disabled] {
+  background: var(--paper-100); color: var(--fg-4); cursor: not-allowed;
+}
+.textarea { resize: vertical; min-height: 80px; }
+
+/* ----- Status pills ----- */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  font-family: var(--font-body); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+.pill-complete { background: var(--sage-50);    color: var(--sage-700); }
+.pill-complete .dot { background: var(--sage-500); }
+.pill-tbd      { background: #FBF1E5;           color: #8A5E1C; }
+.pill-tbd .dot { background: var(--status-tbd); }
+.pill-missing  { background: #FBEAE6;           color: #7A3428; }
+.pill-missing .dot { background: var(--status-missing); }
+.pill-neutral  { background: var(--paper-200);  color: var(--ink-700); }
+.pill-accent   { background: var(--terracotta-50); color: var(--terracotta-700); }
+
+/* ----- Surfaces ----- */
+.card {
+  background: var(--bg-surface); border: 1px solid var(--border-1);
+  border-radius: var(--radius-lg); padding: 24px;
+  transition: box-shadow var(--dur-base), border-color var(--dur-base);
+}
+.card-hover:hover { box-shadow: var(--shadow-md); border-color: var(--border-2); }
+.card-subtle { background: var(--bg-subtle); }
+
+/* ----- Avatar ----- */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--terracotta-500); color: var(--fg-on-accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 14px; font-weight: 500;
+}
+
+/* ----- App nav ----- */
+.app-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--bg-surface);
+  border: 1px solid var(--border-1); border-radius: var(--radius-lg);
+}
+.app-nav .crumbs {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--fg-3);
+}
+.app-nav .crumbs .current { color: var(--fg-1); font-weight: 500; }
+.app-nav .crumbs .sep { color: var(--fg-4); }
+
+/* ----- Toast ----- */
+.toast {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px; background: var(--ink-900); color: var(--paper-50);
+  border-radius: var(--radius-md); max-width: 400px; box-shadow: var(--shadow-lg);
+}
+.toast svg { color: var(--terracotta-300); flex-shrink: 0; }
+.toast .title { font-size: 14px; font-weight: 600; }
+.toast .sub   { font-size: 13px; color: rgba(250, 247, 242, 0.65); margin-top: 2px; }
+
+/* ----- Modal shell ----- */
+.modal {
+  max-width: 520px; background: var(--bg-surface);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+.modal .m-head { padding: 24px 28px 12px; }
+.modal .m-head h3 { margin: 0 0 4px; }
+.modal .m-head p  { margin: 0; font-size: 14px; color: var(--fg-3); }
+.modal .m-body { padding: 12px 28px 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal .m-foot {
+  padding: 16px 28px; background: var(--paper-50);
+  border-top: 1px solid var(--border-1);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* ----- Section rhythm (marketing) ----- */
+.ds-section { padding: 96px 24px; }
+@media (min-width: 768px) { .ds-section { padding: 96px 48px; } }
+.ds-container { max-width: 1200px; margin: 0 auto; }
+
+/* ----- Logo wordmark -----
+   CSS fallback for the Speclyy mark. The authoritative asset is the PNG at
+   /logos/speclyy-logo-{light,dark}.png — see the Logo component. Never recolor
+   to brand accents, never add a sparkle, never rebuild in a sans. */
+.logo-wordmark {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 22px; line-height: 1; letter-spacing: -0.02em;
+  color: var(--fg-1); text-decoration: none; display: inline-flex;
+  align-items: baseline;
+  font-variation-settings: "opsz" 144, "SOFT" 40, "WONK" 1;
+}
+.logo-wordmark .spec { font-style: italic; font-weight: 500; }
+.logo-wordmark .lyy  { font-style: normal; font-weight: 700; }
+.logo-wordmark.on-dark { color: var(--fg-on-inverse); }
+
+/* Link reset for marketing nav rows */
+.link-quiet { color: var(--fg-2); text-decoration: none; transition: color var(--dur-fast); }
+.link-quiet:hover { color: var(--fg-1); }

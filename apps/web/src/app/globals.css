@@ -1,0 +1,9 @@
+@import '@speclyy/design-system/styles/all.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { -webkit-tap-highlight-color: transparent; }
+}

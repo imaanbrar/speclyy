@@ -1,46 +1,38 @@
 ---
-// Problem section — the pain before Speclyy
 const pains = [
   {
-    icon: '📋',
-    heading: 'Spec sheets live in a dozen places',
+    heading: 'Specs live in a dozen places.',
     body: 'Sticky notes, Excel, Programa, email threads. You spend more time hunting for specs than presenting them.',
   },
   {
-    icon: '🔗',
-    heading: 'Product research is 70% copy-paste',
+    heading: 'Research is 70% copy-paste.',
     body: "You find a Delta faucet you love, then manually transcribe the finish, SKU, and dimensions from the vendor's site. Every. Single. Product.",
   },
   {
-    icon: '😤',
-    heading: 'Clients ask for updates you can\'t quickly give',
+    heading: "Clients ask for updates you can't quickly give.",
     body: 'The spec sheet is out of date the moment you share it. Changes mean tracking down the original, editing, and re-exporting.',
   },
 ]
 ---
 
-<section class="section bg-neutral-50">
-  <div class="container-content">
-
+<section class="ds-section bg-subtle">
+  <div class="ds-container">
     <div class="max-w-2xl mb-16">
-      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
-        The problem
-      </p>
-      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
+      <p class="eyebrow mb-4">The problem</p>
+      <h2 class="h2 md:text-40 lg:text-48">
         Interior design is creative work.<br />
-        Product specs shouldn't be.
+        <span class="italic-serif">Product specs</span> shouldn't be.
       </h2>
     </div>
 
-    <div class="grid gap-8 md:grid-cols-3">
-      {pains.map(pain => (
-        <div class="rounded-2xl bg-white p-8 border border-neutral-100 shadow-sm">
-          <div class="text-3xl mb-4">{pain.icon}</div>
-          <h3 class="text-base font-semibold text-neutral-900 mb-2">{pain.heading}</h3>
-          <p class="text-sm text-neutral-500 leading-relaxed">{pain.body}</p>
+    <div class="grid gap-5 md:grid-cols-3">
+      {pains.map((pain, i) => (
+        <div class="card card-hover">
+          <div class="eyebrow mb-4 text-ink-400">{String(i + 1).padStart(2, '0')}</div>
+          <h3 class="h4 mb-3">{pain.heading}</h3>
+          <p class="body-sm">{pain.body}</p>
         </div>
       ))}
     </div>
-
   </div>
 </section>

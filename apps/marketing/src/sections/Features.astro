@@ -1,61 +1,80 @@
 ---
 const features = [
   {
-    icon: '⚡',
-    heading: 'URL → spec in seconds',
-    body: 'Paste any product URL from any vendor website. Our AI reads the page and fills brand, finish, SKU, dimensions, and product image automatically.',
+    heading: 'URL → spec in seconds.',
+    body: 'Paste any product URL from any vendor website. Speclyy reads the page and fills brand, finish, SKU, dimensions, and image automatically.',
   },
   {
-    icon: '📚',
-    heading: 'Trusted product library',
-    body: "Search Delta, Kohler, Moen, Brizo and more from our curated library. Popular products are pre-loaded — no scraping wait time.",
+    heading: 'A curated Library.',
+    body: 'Search Kohler Billet, Delta Ashlyn, Brizo Litze and every finish. Launching with Delta, Brizo, Kohler, Sherwin-Williams, and Benjamin Moore.',
   },
   {
-    icon: '🗂️',
-    heading: 'Organised by project + room',
-    body: 'Group specs by room (Master Ensuite, Kitchen, Powder Room) within each project. Reorder with drag and drop.',
+    heading: 'Projects, groups, items.',
+    body: 'Group items under free-form names like "Plumbing fixtures" or "Level 1 — Kitchen". Reorder, rename, duplicate — nothing is locked in.',
   },
   {
-    icon: '📄',
-    heading: 'PDF export in one click',
-    body: 'Export a clean, branded spec sheet your clients actually want to read. No reformatting, no layout work.',
+    heading: 'Spec-sheet export.',
+    body: 'Export a branded PDF your builder will actually read. Real product images, finishes, SKUs, dimensions, and source links. CSV coming soon.',
   },
   {
-    icon: '🌐',
-    heading: 'Live shareable links',
-    body: 'Share a live link with your client instead of a static PDF. Updates appear in real-time — no re-sending files.',
+    heading: 'TBD is a real status.',
+    body: 'Mark items TBD or Missing SKU instead of leaving blanks. The spec sheet reflects exactly what you know — and what you don\'t.',
   },
   {
-    icon: '✏️',
-    heading: 'Manual entry always available',
-    body: "Can't find a product online? Add it manually in seconds. Speclyy never blocks your workflow.",
+    heading: 'Manual entry, always.',
+    body: "One-off finish from a trade-only vendor? Add it manually in seconds. Speclyy never blocks your workflow.",
   },
 ]
 ---
 
-<section id="features" class="section bg-neutral-50">
-  <div class="container-content">
-
+<section id="features" class="ds-section bg-subtle">
+  <div class="ds-container">
     <div class="max-w-2xl mb-16">
-      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
-        Features
-      </p>
-      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
+      <p class="eyebrow mb-4">Features</p>
+      <h2 class="h2 md:text-40 lg:text-48">
         Everything you need.<br />
-        Nothing you don't.
+        <span class="italic-serif">Nothing</span> you don't.
       </h2>
     </div>
 
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {features.map(feature => (
-        <div class="rounded-2xl bg-white p-7 border border-neutral-100 shadow-sm
-                    hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-          <div class="text-2xl mb-4">{feature.icon}</div>
-          <h3 class="text-base font-semibold text-neutral-900 mb-2">{feature.heading}</h3>
-          <p class="text-sm text-neutral-500 leading-relaxed">{feature.body}</p>
+        <div class="card card-hover">
+          <h3 class="h4 mb-3">{feature.heading}</h3>
+          <p class="body-sm">{feature.body}</p>
         </div>
       ))}
     </div>
+  </div>
+</section>
 
+<!-- Dark editorial CTA -->
+<section class="px-6 md:px-12 pb-24">
+  <div class="ds-container">
+    <div class="rounded-xl bg-ink-900 text-paper-50 px-10 md:px-20 py-20 md:py-24">
+      <p class="eyebrow text-terracotta-300 mb-4">The deliverable</p>
+      <h2 class="font-display font-normal text-32 md:text-48 lg:text-64 leading-[1.05] tracking-tight text-paper-50 max-w-3xl">
+        Export a spec sheet your builder will <span class="italic-serif text-terracotta-300">actually read.</span>
+      </h2>
+      <p class="body-lg mt-6 max-w-xl" style="color: rgba(250,247,242,0.7)">
+        Speclyy generates a branded PDF organized by your group names, with real product images, finishes, SKUs, dimensions, and source links. Draft-friendly. Always.
+      </p>
+      <div class="mt-10 flex gap-3 flex-wrap">
+        <a href="https://app.speclyy.com/sign-up" class="btn btn-primary btn-lg">Start free trial</a>
+        <a href="#sample" class="btn btn-ghost-inverse btn-lg">See a sample PDF</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Editorial quote -->
+<section class="px-6 md:px-12 pb-24 text-center">
+  <div class="ds-container max-w-4xl">
+    <blockquote class="font-display font-normal text-32 md:text-48 lg:text-56 leading-[1.1] tracking-tight">
+      "I replaced four spreadsheets and a <span class="italic-serif text-accent">whole Dropbox</span> folder with one Speclyy project."
+    </blockquote>
+    <cite class="caption mt-8 inline-block not-italic">
+      <strong class="text-ink-900 font-semibold">Renée Cortez</strong> · Principal, Henley &amp; Co. · Los Angeles
+    </cite>
   </div>
 </section>

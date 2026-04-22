@@ -1,0 +1,45 @@
+@import '@speclyy/design-system/styles/all.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Gallery-specific chrome */
+.swatch {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.swatch .chip {
+  height: 72px; border-radius: var(--radius-md);
+  border: 1px solid var(--border-1);
+}
+.swatch .meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.swatch .name { font-size: 12px; font-weight: 600; color: var(--fg-1); }
+.swatch .hex  { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
+
+.example-label {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--fg-3); text-transform: lowercase;
+}
+.spec-grid { display: grid; gap: 20px; }
+.spec-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spec-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.spec-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.spec-grid.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+  .spec-grid.cols-3, .spec-grid.cols-4, .spec-grid.cols-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.stage {
+  padding: 32px; background: var(--paper-100);
+  border-radius: var(--radius-lg); border: 1px solid var(--border-1);
+}
+.stage.dark { background: var(--ink-900); color: var(--paper-50); }
+.stage-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.sec-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border-1);
+  margin-bottom: 24px; gap: 16px;
+}
+.sec-head h2 { margin: 0; }
+.sec-head .note { font-size: 13px; color: var(--fg-3); }

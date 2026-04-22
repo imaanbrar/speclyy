@@ -1,0 +1,5 @@
+/* Convenience import — pulls fonts, tokens, and component styles
+   in the right order. Import once per app from the root stylesheet. */
+@import './fonts.css';
+@import './tokens.css';
+@import './components.css';

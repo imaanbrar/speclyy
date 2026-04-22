@@ -1,96 +1,75 @@
 ---
 const plans = [
   {
-    name:       'Free',
-    price:      '0',
-    period:     null,
-    note:       'Free forever',
-    cta:        'Get started free',
-    ctaHref:    'https://app.speclyy.com/sign-up',
-    highlight:  false,
+    name:     'Trial',
+    price:    '0',
+    period:   'for 7 days',
+    note:     'Full access. No credit card required.',
+    cta:      'Start trial',
+    ctaHref:  'https://app.speclyy.com/sign-up',
+    featured: false,
     features: [
-      { text: 'Unlimited projects',       included: true  },
-      { text: 'Unlimited spec items',     included: true  },
-      { text: 'URL → spec extraction',    included: true  },
-      { text: 'Product library access',   included: true  },
-      { text: 'PDF export',               included: false },
-      { text: 'Shareable link export',    included: false },
+      'Unlimited projects',
+      'URL paste + manual entry',
+      'Full Library access',
+      'PDF export',
     ],
   },
   {
-    name:         'Pro',
-    annualPrice:  '29',
-    monthlyPrice: '37',
-    period:       'month',
-    note:         'billed annually · or $37/mo month-to-month',
-    cta:          'Get started',
-    ctaHref:      'https://app.speclyy.com/sign-up',
-    highlight:    true,
+    name:     'Studio',
+    price:    '39',
+    period:   '/ designer / month',
+    note:     'Flat rate. Cancel anytime.',
+    cta:      'Start free trial',
+    ctaHref:  'https://app.speclyy.com/sign-up',
+    featured: true,
     features: [
-      { text: 'Unlimited projects',       included: true },
-      { text: 'Unlimited spec items',     included: true },
-      { text: 'URL → spec extraction',    included: true },
-      { text: 'Product library access',   included: true },
-      { text: 'PDF export',               included: true },
-      { text: 'Shareable link export',    included: true },
+      'Everything in Trial',
+      'My Library (save & reuse)',
+      'Studio branding on exports',
+      'CSV export for trades',
     ],
   },
 ]
 ---
 
-<section id="pricing" class="section bg-white">
-  <div class="container-content">
-
+<section id="pricing" class="ds-section bg-app">
+  <div class="ds-container">
     <div class="max-w-2xl mb-16">
-      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
-        Pricing
-      </p>
-      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
-        Simple pricing.<br />No surprises.
+      <p class="eyebrow mb-4">Pricing</p>
+      <h2 class="h2 md:text-40 lg:text-48">
+        One tier. <span class="italic-serif">Seven-day</span> trial.
       </h2>
     </div>
 
-    <div class="flex flex-col sm:flex-row gap-6 max-w-2xl">
+    <div class="grid gap-5 md:grid-cols-2 max-w-4xl">
       {plans.map(plan => (
-        <div class={`flex-1 rounded-3xl p-10 ${plan.highlight ? 'border-2 border-brand-500 bg-white shadow-xl shadow-brand-100' : 'border border-neutral-200 bg-neutral-50'}`}>
-
-          <!-- Plan name + price -->
-          <div class="mb-8">
-            <p class={`text-sm font-semibold mb-1 ${plan.highlight ? 'text-brand-600' : 'text-neutral-500'}`}>{plan.name}</p>
-            <div class="flex items-end gap-1">
-              <span class="text-5xl font-bold text-neutral-900">
-                ${plan.annualPrice ?? plan.price}
-              </span>
-              {plan.period && <span class="text-sm text-neutral-400 pb-2">/ {plan.period}</span>}
-            </div>
-            <p class="mt-2 text-sm text-neutral-500">{plan.note}</p>
+        <div class={`rounded-lg p-9 border bg-surface ${plan.featured ? 'bg-subtle border-ink-900 border-[1.5px]' : 'border-[color:var(--border-2)]'}`}>
+          <p class="eyebrow mb-2">{plan.name}</p>
+          <div class="flex items-baseline gap-2 my-4">
+            <span class="font-display font-normal text-64 md:text-80 leading-none tracking-tighter">
+              <span class="align-super text-32 md:text-40 mr-0.5">$</span>{plan.price}
+            </span>
+            <span class="caption">{plan.period}</span>
           </div>
+          <p class="body-sm text-ink-500 mt-0">{plan.note}</p>
 
-          <!-- Features list -->
-          <ul class="space-y-3 mb-10">
+          <ul class="mt-6 mb-8 flex flex-col gap-2.5">
             {plan.features.map(f => (
-              <li class={`flex items-center gap-3 text-sm ${f.included ? 'text-neutral-700' : 'text-neutral-400'}`}>
-                {f.included ? (
-                  <svg class="w-4 h-4 text-brand-500 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/>
-                  </svg>
-                ) : (
-                  <svg class="w-4 h-4 text-neutral-300 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M4 8a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 8z"/>
-                  </svg>
-                )}
-                {f.text}
+              <li class="flex gap-2.5 items-start body-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-accent flex-shrink-0 mt-0.5">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                <span>{f}</span>
               </li>
             ))}
           </ul>
 
-          <a href={plan.ctaHref} class={`w-full justify-center py-3.5 text-base rounded-2xl flex items-center ${plan.highlight ? 'btn-primary' : 'btn-secondary'}`}>
+          <a href={plan.ctaHref} class={`btn btn-block ${plan.featured ? 'btn-primary' : 'btn-ghost'}`}>
             {plan.cta}
           </a>
-
         </div>
       ))}
     </div>
-
   </div>
 </section>

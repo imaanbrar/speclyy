@@ -1,0 +1,197 @@
+/* ============================================================
+   Speclyy — Design tokens.
+   Editorial, warm, stone-toned. Semantic tokens live here too —
+   reference --bg-app / --fg-1 / --accent in components, not raw palette.
+   ============================================================ */
+
+:root {
+  /* Paper (warm off-whites) */
+  --paper-00: #FFFFFF;
+  --paper-50: #FAF7F2;
+  --paper-100: #F3EEE6;
+  --paper-200: #E8E1D5;
+  --paper-300: #D6CDBD;
+
+  /* Ink (warm darks, not pure black) */
+  --ink-900: #1A1814;
+  --ink-800: #2A2620;
+  --ink-700: #45403A;
+  --ink-600: #6B6558;
+  --ink-500: #928B7C;
+  --ink-400: #B3AC9E;
+  --ink-300: #CFC8BB;
+
+  /* Terracotta — primary accent */
+  --terracotta-50:  #FBF1EB;
+  --terracotta-100: #F5DDCC;
+  --terracotta-300: #E5A684;
+  --terracotta-500: #C06B3E;
+  --terracotta-600: #A3552B;
+  --terracotta-700: #7E4020;
+
+  /* Sage — "complete" status only */
+  --sage-50:  #EFF2EC;
+  --sage-300: #B4C1A4;
+  --sage-500: #6E8A5C;
+  --sage-700: #4A6340;
+
+  /* Semantic status */
+  --status-complete: var(--sage-500);
+  --status-tbd:      #C69650;
+  --status-missing:  #B85C4E;
+
+  /* Surfaces */
+  --bg-app:     var(--paper-50);
+  --bg-surface: var(--paper-00);
+  --bg-subtle:  var(--paper-100);
+  --bg-hover:   var(--paper-200);
+  --bg-inverse: var(--ink-900);
+
+  /* Foreground */
+  --fg-1: var(--ink-900);
+  --fg-2: var(--ink-700);
+  --fg-3: var(--ink-500);
+  --fg-4: var(--ink-400);
+  --fg-on-inverse: var(--paper-50);
+  --fg-on-accent:  var(--paper-00);
+
+  /* Borders — hairline, warm */
+  --border-1: rgba(26, 24, 20, 0.08);
+  --border-2: rgba(26, 24, 20, 0.14);
+  --border-3: rgba(26, 24, 20, 0.24);
+  --border-inverse: rgba(250, 247, 242, 0.14);
+
+  /* Accent */
+  --accent:         var(--terracotta-500);
+  --accent-hover:   var(--terracotta-600);
+  --accent-pressed: var(--terracotta-700);
+  --accent-tint:    var(--terracotta-50);
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Shadows — warm ink tint, not pure black */
+  --shadow-xs: 0 1px 2px rgba(26, 24, 20, 0.04);
+  --shadow-sm: 0 1px 2px rgba(26, 24, 20, 0.04), 0 2px 6px rgba(26, 24, 20, 0.04);
+  --shadow-md: 0 2px 4px rgba(26, 24, 20, 0.04), 0 8px 20px rgba(26, 24, 20, 0.06);
+  --shadow-lg: 0 4px 8px rgba(26, 24, 20, 0.06), 0 20px 40px rgba(26, 24, 20, 0.08);
+  --shadow-xl: 0 10px 20px rgba(26, 24, 20, 0.06), 0 40px 80px rgba(26, 24, 20, 0.12);
+  --shadow-inset: inset 0 1px 2px rgba(26, 24, 20, 0.04);
+  --ring: 0 0 0 3px rgba(192, 107, 62, 0.22);
+
+  /* Spacing (4px baseline) */
+  --space-0: 0;  --space-1: 4px;  --space-2: 8px;   --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --space-10: 40px; --space-12: 48px; --space-16: 64px; --space-20: 80px;
+  --space-24: 96px;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 360ms;
+
+  /* Typography */
+  --font-display: 'Fraunces', 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-body:    'Inter Tight', ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-12: 0.75rem;  --fs-13: 0.8125rem; --fs-14: 0.875rem;
+  --fs-15: 0.9375rem; --fs-16: 1rem;     --fs-18: 1.125rem;
+  --fs-20: 1.25rem;  --fs-24: 1.5rem;   --fs-28: 1.75rem;
+  --fs-32: 2rem;     --fs-40: 2.5rem;   --fs-48: 3rem;
+  --fs-64: 4rem;     --fs-80: 5rem;     --fs-96: 6rem;
+
+  --lh-tight: 1.05;  --lh-snug: 1.2;   --lh-normal: 1.45; --lh-relaxed: 1.6;
+  --ls-tighter: -0.03em; --ls-tight: -0.015em; --ls-normal: 0;
+  --ls-wide: 0.04em; --ls-wider: 0.12em;
+}
+
+/* ============================================================ BASE */
+
+html, body {
+  background: var(--bg-app);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-15);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--terracotta-100); color: var(--ink-900); }
+
+/* ============================================================ TYPE CLASSES */
+
+.display-1 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(3rem, 8vw, var(--fs-96));
+  line-height: var(--lh-tight); letter-spacing: var(--ls-tighter);
+  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+}
+.display-2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(2.25rem, 6vw, var(--fs-80));
+  line-height: var(--lh-tight); letter-spacing: var(--ls-tighter);
+  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+}
+
+.h1 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--fs-48); line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight); color: var(--fg-1);
+  font-variation-settings: "opsz" 144;
+}
+.h2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--fs-32); line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight); color: var(--fg-1);
+  font-variation-settings: "opsz" 72;
+}
+.h3 {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: var(--fs-24); line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight); color: var(--fg-1);
+  font-variation-settings: "opsz" 24;
+}
+.h4 {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: var(--fs-18); line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight); color: var(--fg-1);
+}
+
+.body-lg {
+  font-family: var(--font-body); font-size: var(--fs-18);
+  line-height: var(--lh-relaxed); color: var(--fg-2);
+}
+.body, .ds-body {
+  font-family: var(--font-body); font-size: var(--fs-15);
+  line-height: var(--lh-normal); color: var(--fg-2);
+}
+.body-sm {
+  font-family: var(--font-body); font-size: var(--fs-14);
+  line-height: var(--lh-normal); color: var(--fg-2);
+}
+.caption {
+  font-family: var(--font-body); font-size: var(--fs-13);
+  line-height: var(--lh-normal); color: var(--fg-3);
+}
+.eyebrow {
+  font-family: var(--font-body); font-size: var(--fs-12);
+  font-weight: 600; line-height: 1;
+  letter-spacing: var(--ls-wider); text-transform: uppercase;
+  color: var(--fg-3);
+}
+.mono {
+  font-family: var(--font-mono); font-size: var(--fs-13);
+  letter-spacing: 0; color: var(--fg-2);
+}
+.italic-serif {
+  font-family: var(--font-display); font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+}

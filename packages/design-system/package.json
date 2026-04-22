@@ -1,0 +1,33 @@
+{
+  "name": "@speclyy/design-system",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Speclyy shared design system — tokens, components, Tailwind preset.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles/fonts.css": "./src/styles/fonts.css",
+    "./styles/tokens.css": "./src/styles/tokens.css",
+    "./styles/components.css": "./src/styles/components.css",
+    "./styles/all.css": "./src/styles/all.css",
+    "./tailwind-preset": "./tailwind-preset.cjs",
+    "./icons": "./src/icons/index.tsx",
+    "./assets/logo-dark.png": "./assets/speclyy-logo-dark.png",
+    "./assets/logo-light.png": "./assets/speclyy-logo-light.png"
+  },
+  "files": ["src", "assets", "tailwind-preset.cjs"],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "clsx": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

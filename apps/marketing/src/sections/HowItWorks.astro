@@ -1,61 +1,42 @@
 ---
-// How it works — 3 steps with scroll animation via React Island
-import UrlDemoIsland from '@/components/islands/UrlDemoIsland'
-
 const steps = [
   {
     number: '01',
-    heading: 'Paste a product URL',
-    body: "Find a product on Delta, Kohler, Moen — anywhere. Paste the link into your project. That's it.",
+    heading: 'Paste a product URL.',
+    body: "Find a product on Kohler, Delta, Brizo — anywhere. Paste the link into your project. That's it.",
   },
   {
     number: '02',
-    heading: 'We fill in everything',
-    body: 'Speclyy reads the page, extracts the brand, collection, finish options, SKU, dimensions, and product image. No typing.',
+    heading: 'Speclyy fills in the rest.',
+    body: 'We read the page, extract brand, collection, finish options, SKU, dimensions, and product image. No typing.',
   },
   {
     number: '03',
-    heading: 'Share a beautiful spec sheet',
-    body: 'Export a PDF or share a live link with your client. It looks like you spent hours on it.',
+    heading: 'Export a builder-ready spec sheet.',
+    body: 'Download a branded PDF or share a live link with the builder. It reads like you spent hours on it.',
   },
 ]
 ---
 
-<section id="how-it-works" class="section bg-white">
-  <div class="container-content">
-
+<section id="how-it-works" class="ds-section bg-app">
+  <div class="ds-container">
     <div class="max-w-2xl mb-16">
-      <p class="text-sm font-semibold uppercase tracking-widest text-brand-600 mb-3">
-        How it works
-      </p>
-      <h2 class="text-4xl font-bold text-neutral-900 leading-tight">
-        From URL to spec sheet in seconds.
+      <p class="eyebrow mb-4">How it works</p>
+      <h2 class="h2 md:text-40 lg:text-48">
+        From URL to <span class="italic-serif">spec sheet</span> in seconds.
       </h2>
     </div>
 
-    <div class="grid gap-12 lg:grid-cols-2 lg:gap-24 items-center">
-
-      <!-- Steps -->
-      <ol class="space-y-10">
-        {steps.map(step => (
-          <li class="flex gap-6">
-            <span class="flex-shrink-0 w-10 h-10 rounded-full bg-brand-50 border border-brand-100
-                         flex items-center justify-center text-xs font-bold text-brand-600">
-              {step.number}
-            </span>
-            <div>
-              <h3 class="text-base font-semibold text-neutral-900 mb-1">{step.heading}</h3>
-              <p class="text-sm text-neutral-500 leading-relaxed">{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-
-      <!-- Interactive URL demo — React Island (client:visible = loads when scrolled into view) -->
-      <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-8 shadow-sm">
-        <UrlDemoIsland client:visible />
-      </div>
-
-    </div>
+    <ol class="grid gap-10 md:grid-cols-3">
+      {steps.map(step => (
+        <li class="flex flex-col gap-5 pt-6 border-t border-[color:var(--border-2)]">
+          <span class="font-display italic text-accent text-48 font-light leading-none">
+            {step.number}.
+          </span>
+          <h3 class="h3">{step.heading}</h3>
+          <p class="body-sm max-w-xs">{step.body}</p>
+        </li>
+      ))}
+    </ol>
   </div>
 </section>
