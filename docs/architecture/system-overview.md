@@ -10,6 +10,8 @@ Speclyy is a spec-building tool for interior designers. A designer pastes a prod
 
 The product is a Next.js web app deployed on Vercel. The AI scraper is a separate long-running Node.js service on Fly.io, triggered asynchronously via Inngest. Supabase provides Postgres, Auth, Storage, and Realtime. Stripe handles subscriptions.
 
+Shared workspace packages (`@speclyy/db` — Drizzle schema + Postgres client; `@speclyy/auth` — Supabase clients + middleware; `@speclyy/design-system` — UI) hold cross-app code so future apps in the monorepo can import them rather than duplicate.
+
 ---
 
 ## System context
@@ -72,6 +74,12 @@ flowchart TB
     RH[Route Handlers\n/api/webhooks/stripe\n/api/webhooks/inngest\n/api/scraper/callback]
   end
 
+  subgraph Pkgs["Shared workspace packages"]
+    DBPKG[@speclyy/db\nDrizzle schema + client]
+    AUTHPKG[@speclyy/auth\nSupabase + middleware]
+    DSPKG[@speclyy/design-system\nUI tokens + components]
+  end
+
   subgraph Astro["Vercel — Astro Marketing Site"]
     MKT[Static marketing pages\nspeclyy.com]
   end
@@ -98,6 +106,10 @@ flowchart TB
   SA --> Inngest
   RSC --> DB
   RSC --> ST
+
+  RSC -. imports .- DBPKG
+  SA -. imports .- DBPKG
+  MW -. imports .- AUTHPKG
   RH -->|verify sig| Stripe
   RH --> Inngest
   Inngest --> SC

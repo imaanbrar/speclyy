@@ -1,6 +1,12 @@
 # Application — Architecture
 
-How the Next.js application is structured and how its core patterns work. For the *why* behind framework and hosting choices, see [ADR-0001](adr/0001-application-framework.md) and [ADR-0002](adr/0002-hosting-platform.md).
+How the Next.js app (`apps/web`, deployed at `app.speclyy.com`) is structured and how its core patterns work. For the *why* behind framework and hosting choices, see [ADR-0001](adr/0001-application-framework.md) and [ADR-0002](adr/0002-hosting-platform.md).
+
+The app consumes three workspace packages:
+
+- `@speclyy/db` — Drizzle schema + Postgres client.
+- `@speclyy/auth` — Supabase browser/server clients + composable middleware gates.
+- `@speclyy/design-system` — UI tokens, components, Tailwind preset.
 
 ---
 

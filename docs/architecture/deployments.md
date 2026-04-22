@@ -34,13 +34,17 @@ speclyy/
 │   ├── web/          → Next.js app (app.speclyy.com)
 │   └── marketing/    → Astro site (speclyy.com)
 ├── packages/
-│   └── ...           → shared types, utils (future)
+│   ├── design-system/  → shared UI (tokens, components, Tailwind preset)
+│   ├── db/             → shared Drizzle schema + Postgres client
+│   └── auth/           → shared Supabase clients + Next.js middleware
 └── pnpm-workspace.yaml
 ```
 
 Vercel detects which app changed on push and only rebuilds the affected project. Two separate Vercel projects:
 - `speclyy-web` → `apps/web/`
 - `speclyy-marketing` → `apps/marketing/`
+
+**Shared packages are not deployed.** They're consumed via `workspace:*` and bundled into each app at build time. A change to `packages/db` or `packages/auth` triggers a rebuild of every app that imports them — Vercel's monorepo detection handles this via package graph traversal.
 
 ---
 
