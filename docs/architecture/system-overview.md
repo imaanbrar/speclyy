@@ -8,7 +8,14 @@ Top-level view of Speclyy's architecture. Start here, then follow links into com
 
 Speclyy is a spec-building tool for interior designers. A designer pastes a product URL, and the system scrapes the vendor page, uses Claude to extract structured specification fields (dimensions, finish, price, etc.), and pre-fills a spec sheet — saving the copy-paste work that happens dozens of times per project.
 
-The product is a Next.js web app deployed on Vercel. The AI scraper is a separate long-running Node.js service on Fly.io, triggered asynchronously via Inngest. Supabase provides Postgres, Auth, Storage, and Realtime. Stripe handles subscriptions.
+The product ships as two Next.js apps on Vercel that share one database and one auth session:
+
+- **`app.speclyy.com`** — the full designer workspace (projects, groups, specs, scraper).
+- **`moodboards.speclyy.com`** — a standalone mood board app for users who only want mood boards without the rest.
+
+Both import the same `@speclyy/db` (Drizzle schema + Postgres client), `@speclyy/auth` (Supabase clients + middleware), and `@speclyy/design-system` (UI) from the monorepo. The Supabase auth cookie is scoped to `.speclyy.com`, so signing in on one app carries the session to the other. The AI scraper is a separate long-running Node.js service on Fly.io, triggered asynchronously via Inngest. Supabase provides Postgres, Auth, Storage, and Realtime. Stripe handles subscriptions.
+
+See [ADR-0016](adr/0016-shared-packages-and-moodboard-app.md) for why mood boards are a separate deployed app rather than a route inside `app.speclyy.com`, and [moodboard.md](moodboard.md) for the standalone app's scope.
 
 ---
 
@@ -22,7 +29,8 @@ flowchart TB
   end
 
   subgraph Core["Speclyy Systems"]
-    App["🟦 Speclyy App\nNext.js on Vercel\nproject/spec management"]
+    App["🟦 Designer App\nNext.js on Vercel\napp.speclyy.com\nprojects + specs"]
+    Boards["🟦 Mood Board App\nNext.js on Vercel\nmoodboards.speclyy.com\nstandalone boards"]
     Scraper["🟦 Scraper\nNode.js on Fly.io\nheadless browser + AI extraction"]
   end
 
@@ -37,12 +45,16 @@ flowchart TB
   end
 
   Designer -->|"HTTPS"| App
+  Designer -->|"HTTPS"| Boards
   Admin -->|"HTTPS + shared secret"| App
 
   App -->|"DB + Auth + Storage + Realtime\nHTTPS / JWT"| Supabase
   App -->|"Subscriptions\nHTTPS"| Stripe
   App -->|"Emit / receive jobs\nHTTPS"| Inngest
   App -->|"OAuth\nHTTPS"| Google
+
+  Boards -->|"DB + Auth + Storage\nHTTPS / JWT"| Supabase
+  Boards -->|"OAuth\nHTTPS"| Google
 
   Stripe -->|"Webhook events\nHTTPS"| App
 
@@ -65,11 +77,23 @@ flowchart TB
     UI[Client Components\nReact islands]
   end
 
-  subgraph Vercel["Vercel — Next.js App Router"]
+  subgraph Vercel["Vercel — Designer App (app.speclyy.com)"]
     MW[middleware.ts\nauth + onboarding + billing gates]
     RSC[Server Components\nSSR data fetch]
     SA[Server Actions\nmutations]
     RH[Route Handlers\n/api/webhooks/stripe\n/api/webhooks/inngest\n/api/scraper/callback]
+  end
+
+  subgraph VercelMB["Vercel — Mood Board App (moodboards.speclyy.com)"]
+    MBMW[middleware.ts\nauth gate only]
+    MBRSC[Server Components\nmood board list + canvas]
+    MBSA[Server Actions\nboard + item mutations]
+  end
+
+  subgraph Pkgs["Shared packages"]
+    DBPKG[@speclyy/db\nDrizzle schema + client]
+    AUTHPKG[@speclyy/auth\nSupabase + middleware]
+    DSPKG[@speclyy/design-system\nUI tokens + components]
   end
 
   subgraph Astro["Vercel — Astro Marketing Site"]
@@ -94,10 +118,22 @@ flowchart TB
 
   UI -->|requests| MW --> RSC
   UI --> SA
+  UI -->|requests| MBMW --> MBRSC
+  UI --> MBSA
   SA --> DB
   SA --> Inngest
   RSC --> DB
   RSC --> ST
+  MBRSC --> DB
+  MBSA --> DB
+  MBRSC --> ST
+
+  RSC -. imports .- DBPKG
+  SA -. imports .- DBPKG
+  MW -. imports .- AUTHPKG
+  MBMW -. imports .- AUTHPKG
+  MBRSC -. imports .- DBPKG
+  MBSA -. imports .- DBPKG
   RH -->|verify sig| Stripe
   RH --> Inngest
   Inngest --> SC
@@ -225,8 +261,9 @@ Full security detail: [security.md](security.md)
 
 | Surface | Host | Deploy trigger |
 |---|---|---|
-| Next.js app | Vercel | Push to `main` |
-| Astro marketing | Vercel (separate project) | Push to `main` |
+| Designer app (`app.speclyy.com`) | Vercel (`speclyy-web`) | Push to `main` |
+| Mood board app (`moodboards.speclyy.com`) | Vercel (`speclyy-moodboard`) | Push to `main` |
+| Astro marketing (`speclyy.com`) | Vercel (`speclyy-marketing`) | Push to `main` |
 | Scraper | Fly.io | Manual `fly deploy` (or CI) |
 | Postgres + Auth + Storage + Realtime | Supabase | Migrations via `supabase db push` |
 | Job queue | Inngest cloud | Serverless; no deploy needed |
@@ -241,6 +278,7 @@ Full detail: [deployments.md](deployments.md)
 | Doc | Covers |
 |---|---|
 | [application.md](application.md) | Route groups, RSC vs Client, Server Actions, data fetching, env vars |
+| [moodboard.md](moodboard.md) | Standalone `apps/moodboard` — scope, routes, cross-domain auth |
 | [marketing.md](marketing.md) | Astro site, Islands, Vercel monorepo setup |
 | [auth.md](auth.md) | Sign-in flow, session lifecycle, middleware gates, RLS |
 | [database.md](database.md) | Full schema, dual-client pattern, migrations, RLS policies |

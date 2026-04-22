@@ -4,9 +4,11 @@
   "version": "0.0.0",
   "scripts": {
     "dev:web":        "pnpm --filter @speclyy/web dev",
+    "dev:moodboard":  "pnpm --filter @speclyy/moodboard dev",
     "dev:marketing":  "pnpm --filter @speclyy/marketing dev",
     "dev:design":     "pnpm --filter @speclyy/design dev",
     "build:web":      "pnpm --filter @speclyy/web build",
+    "build:moodboard":"pnpm --filter @speclyy/moodboard build",
     "build:marketing":"pnpm --filter @speclyy/marketing build",
     "build:design":   "pnpm --filter @speclyy/design build",
     "build":          "pnpm --filter './apps/*' build"

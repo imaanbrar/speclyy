@@ -1,11 +1,11 @@
 {
-  "name": "@speclyy/web",
+  "name": "@speclyy/moodboard",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev":   "next dev",
+    "dev":   "next dev --port 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3001",
     "lint":  "next lint"
   },
   "dependencies": {
