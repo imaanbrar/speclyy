@@ -26,10 +26,14 @@ flowchart TB
   end
 
   Google[Google OAuth]
+  Mail[Email OTP]
 
   UI -->|"Sign in with Google"| Auth
+  UI -->|"Sign in with email"| Auth
   Auth --> Google
+  Auth --> Mail
   Google --> Cb
+  Mail --> Cb
   Cb -->|sets cookies| Cookie
   Cookie -->|every request| MW
   MW -->|getUser + refresh| Auth
@@ -44,7 +48,7 @@ flowchart TB
 
 | Component | Role |
 |---|---|
-| **Supabase Auth (GoTrue)** | Runs Google OAuth, issues JWT access + refresh tokens, manages `auth.users`. |
+| **Supabase Auth (GoTrue)** | Runs Google OAuth + email OTP, issues JWT access + refresh tokens, manages `auth.users`. |
 | **`@supabase/ssr`** | Next.js client library. Three factories: `createBrowserClient`, `createServerClient` (RSC / Server Actions), and a middleware variant that rewrites cookies. |
 | **`middleware.ts`** | Runs on every non-static request. Refreshes session and enforces route gates. |
 | **`public.profiles`** | App-side user record, 1:1 with `auth.users`. Created via DB trigger on signup. |
@@ -54,7 +58,11 @@ flowchart TB
 
 ## Sign-in flow
 
-1. User clicks **Continue with Google** on `/sign-in`.
+`/sign-in` offers two options: **Continue with Google** and **Continue with email**.
+
+### Google OAuth
+
+1. User clicks **Continue with Google**.
 2. Client Component calls:
    ```ts
    supabase.auth.signInWithOAuth({
@@ -71,11 +79,28 @@ flowchart TB
    - New user (no `onboarding_completed_at`) → `/onboarding/name`
    - Existing onboarded user → `/projects`
 
+### Email OTP (magic code)
+
+1. User enters email and clicks **Continue with email**.
+2. Client Component calls:
+   ```ts
+   supabase.auth.signInWithOtp({
+     email,
+     options: { emailRedirectTo: `${origin}/auth/callback` },
+   })
+   ```
+3. Supabase sends a 6-digit code + magic link to the email. The same template works for sign-up and sign-in — no separate flows.
+4. User enters the code on `/sign-in/verify` (or clicks the link, which hits `/auth/callback` directly).
+5. Client calls `supabase.auth.verifyOtp({ email, token, type: 'email' })`. Session cookies are set identically to the OAuth path.
+6. Same trigger + redirect behavior as Google (steps 6–7 above).
+
+**Rate limits.** Supabase enforces 1 OTP per 60s per email and 30 per hour per IP by default. Surface a friendly "check your email or wait 60s" message on retry.
+
 ## Session lifecycle
 
 - **Access token** — JWT, ~1 hour lifetime. Signed by Supabase. Middleware verifies signature locally (no round-trip).
-- **Refresh token** — longer-lived (weeks), single-use. Exchanged for a new access + refresh token pair when the access token is near expiry.
-- **Silent refresh** — `supabase.auth.getUser()` in middleware triggers refresh if needed. New cookies returned as `Set-Cookie` headers on the response. User never sees a logout.
+- **Refresh token** — **90-day sliding window**, single-use. Each use issues a fresh refresh token; inactivity past 90 days forces re-authentication. Configured in the Supabase dashboard (Auth → Sessions → *Inactivity timeout* = 90d).
+- **Silent refresh** — `supabase.auth.getUser()` in middleware triggers refresh if needed. New cookies returned as `Set-Cookie` headers on the response. User never sees a logout as long as they open the app at least once every 90 days.
 - **Sign-out** — `supabase.auth.signOut()` revokes the refresh token server-side and clears both cookies.
 
 ---
@@ -247,6 +272,8 @@ Downstream tables (`projects`, `groups`, `items`, etc.) follow the same pattern,
 | Case | Behavior |
 |---|---|
 | **OAuth callback error** (`error` param) | `/auth/callback` redirects to `/sign-in?error=<code>` with a friendly message. |
+| **Expired / invalid OTP code** | `verifyOtp` returns an error; `/sign-in/verify` shows "code expired, request a new one" and re-enables the resend button. |
+| **OTP rate limit hit** | Client shows "too many attempts, try again in a minute"; resend button disabled for 60s. |
 | **Expired refresh token** (user idle for weeks) | `getUser()` returns null; middleware treats as unauthenticated → `/sign-in`. |
 | **User deleted in Supabase dashboard** | Existing cookies fail verification; middleware clears them and redirects. |
 | **Profile row missing** (should not occur due to trigger) | Onboarding route defensively upserts the row before proceeding. |
