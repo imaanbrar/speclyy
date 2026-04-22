@@ -20,9 +20,9 @@ We also need to pick a model if we go the LLM route.
 
 Use **Claude API** for extraction, passing truncated HTML + a screenshot.
 
-- **Model:** `claude-opus-4-5` as default. A/B test `claude-sonnet-4-5` after first 500 scrapes if cost becomes material.
+- **Model:** `claude-opus-4-7` as default. A/B test `claude-sonnet-4-6` after first 500 scrapes if cost becomes material.
 - **Input:** DOM-pruned HTML (~15,000 chars) + WebP screenshot as base64
-- **Output:** Strict JSON schema, `null` for unfound fields
+- **Output:** Zod-validated JSON schema, `null` for unfound fields
 
 ## Rationale
 
@@ -41,15 +41,15 @@ An LLM reads the *meaning* of the page, not its structure. `"find all finish/col
 
 ### Model choice — Opus over Sonnet for MVP
 
-| | Opus (`claude-opus-4-5`) | Sonnet (`claude-sonnet-4-5`) |
+| | Opus (`claude-opus-4-7`) | Sonnet (`claude-sonnet-4-6`) |
 |---|---|---|
 | Extraction quality | Highest | Good, occasional misses on complex pages |
-| Cost per scrape | ~$0.06 | ~$0.02 |
+| Cost per scrape | ~$0.038 | ~$0.023 |
 | Latency | ~3s | ~1s |
-| Monthly cost at 500/mo | ~$30 | ~$10 |
-| Monthly cost per bulk crawl (1,200 URLs) | ~$72 | ~$24 |
+| Monthly cost at 2,250/mo | ~$86 | ~$52 |
+| Monthly cost per bulk crawl (1,200 URLs) | ~$46 | ~$28 |
 
-At MVP scale, $30/month for on-demand scraping is acceptable. Quality matters more than cost when every scrape result is a designer's product data — wrong finishes or missing SKUs directly erode product trust.
+At MVP scale, ~$86/month for on-demand scraping is acceptable. Quality matters more than cost when every scrape result is a designer's product data — wrong finishes or missing SKUs directly erode product trust.
 
 **Decision:** Start with Opus. After 500 scrapes, compare completeness scores between Opus and Sonnet on the same URLs. Downgrade to Sonnet if quality delta is <5% on completeness.
 
@@ -65,16 +65,25 @@ DOM-pruned HTML keeps structural cues (dropdown option values, data attributes, 
 ## Cost model
 
 ```
-Opus pricing: $15 / 1M input tokens, $75 / 1M output tokens
-Per scrape:   ~3,200 input tokens + ~180 output tokens
-Cost:         (3200 × $0.000015) + (180 × $0.000075) = $0.048 + $0.013 = ~$0.06
+Opus 4.7 pricing (April 2026): $5 / 1M input tokens, $25 / 1M output tokens
 
-Monthly on-demand (500 scrapes):   ~$30
-Per bulk crawl (1,200 URLs):       ~$72
-Annual estimate (6 crawls + daily on-demand): ~$500
+Per scrape input tokens:
+  System prompt + instructions:    ~300
+  DOM-pruned HTML (~15k chars):  ~5,000   (~3 chars/token for HTML)
+  WebP screenshot (1280×800):    ~1,365   (width × height / 750)
+  Total input:                   ~6,665
+Per scrape output tokens:          ~200   (7 JSON fields)
+
+Cost: (6,665 × $0.000005) + (200 × $0.000025) = $0.033 + $0.005 = ~$0.038
+
+Monthly on-demand (2,250 scrapes, 25% cache hit):   ~$86
+Per bulk crawl (1,200 URLs):                        ~$46
+Annual estimate (6 crawls + daily on-demand):       ~$1,300
 ```
 
-Acceptable at MVP. Monitored via `claude_input_tokens` and `claude_output_tokens` fields in Axiom logs.
+The screenshot is billed as image tokens — ~20% of input cost. Don't forget it when projecting spend.
+
+Monitored via `claude_input_tokens`, `claude_output_tokens`, and `claude_image_tokens` fields in Axiom logs. See [estimated-infra-costs.md](../estimated-infra-costs.md) for the full cost walkthrough including Sonnet comparison.
 
 ## Consequences
 
@@ -95,7 +104,9 @@ Acceptable at MVP. Monitored via `claude_input_tokens` and `claude_output_tokens
 const EXTRACTION_PROMPT = `
 You are extracting product data from an interior design product page.
 
-Return a JSON object matching this exact schema:
+Return a JSON object matching this exact schema. Respond with JSON only — no
+markdown fences, no preamble, no trailing prose.
+
 {
   "product_name": string | null,
   "brand": string | null,
@@ -117,6 +128,26 @@ Rules:
 Page HTML (truncated):
 {html}
 `
+```
+
+### Schema validation (required)
+
+Claude output is validated against a Zod schema before persistence. A parse failure is classified as `error_type = 'claude_error'` ([failure-tracking.md](../scraper/failure-tracking.md)) and the step retries once; markdown-fenced output (` ```json ... ``` `) is stripped before parsing.
+
+```ts
+// scraper/lib/extracted-product.ts
+import { z } from 'zod'
+
+export const ExtractedProductSchema = z.object({
+  product_name: z.string().min(1).nullable(),
+  brand:        z.string().min(1).nullable(),
+  collection:   z.string().min(1).nullable(),
+  finishes:     z.array(z.string().min(1)).nullable(),
+  sku:          z.string().min(1).nullable(),
+  dimensions:   z.record(z.string(), z.string()).nullable(),
+  image_url:    z.string().url().nullable(),
+})
+export type ExtractedProduct = z.infer<typeof ExtractedProductSchema>
 ```
 
 ## Alternatives considered

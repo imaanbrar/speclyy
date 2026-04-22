@@ -22,10 +22,17 @@ Deployed as a Next.js Route Handler (`/api/webhooks/inngest`). Functions registe
 
 Key Inngest features used:
 
-**Step isolation** — each phase is an independently retriable step:
+**Step isolation** — each phase is an independently retriable step. Raw HTML + screenshot are written to Supabase Storage in step 1; subsequent steps receive only the storage key (see "Event payload size limit" below).
 ```ts
-const { html } = await step.run('playwright-scrape', () => runPlaywright(url))
-const extracted = await step.run('claude-extract', () => extractWithClaude(html))
+const scrapeAssetKey = await step.run('playwright-scrape', async () => {
+  const { html, screenshotBase64 } = await runPlaywright(url)
+  await storage.uploadScrapeAssets(urlHash, { html, screenshotBase64 })
+  return urlHash
+})
+const extracted = await step.run('claude-extract', async () => {
+  const assets = await storage.loadScrapeAssets(scrapeAssetKey)
+  return await extractWithClaude(assets.html, assets.screenshotBase64)
+})
 await step.run('persist', () => updateCache(extracted))
 ```
 
@@ -78,8 +85,9 @@ await step.sendEvent('fan-out', urls.map(u => ({
 
 **Negative**
 - Inngest is a third-party vendor — if it goes down, scraping stops. Mitigated by Inngest's SLA and the fact that on-demand scraping can degrade gracefully to manual entry.
-- Event payload size limit (512KB) — HTML can be large. Mitigation: pass the `scrape_cache_id` (not the HTML) between steps; Playwright writes HTML to the cache table, Claude reads it from there.
+- Event payload size limit (**512KB**) — trivially exceeded: a base64 WebP screenshot alone is 300–800KB, pruned HTML another 15–40KB. Mitigation: step 1 (`playwright-scrape`) writes `{ html, screenshotBase64 }` to a private Supabase Storage bucket (`scrape-assets`, 24h lifecycle rule) keyed by `url_hash`; step 2 (`claude-extract`) re-reads them. Only the storage key (~64 bytes) travels through Inngest. See [scraper/on-demand.md](../scraper/on-demand.md) for the full implementation.
 - `throttle` key is per-Inngest-app, not per-Fly.io instance — correct behaviour, but worth understanding.
+- `concurrency.limit` is also per-Inngest-app, not per-machine. With 1 Fly machine and `limit: 5` the browser pool is the real constraint. Bump to `10` when scaling to 2 machines (`fly scale count 2`) so each pool stays busy.
 
 ## Alternatives considered
 

@@ -29,7 +29,7 @@ primary_region = "iad"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 512  # Playwright needs ~400MB per concurrent session
+  memory_mb = 1024  # browser pool of 4 warm pages (~400MB) + Node; see scraper/performance.md
 
 [http_service]
   internal_port = 3001
@@ -47,7 +47,7 @@ Scale horizontally when bulk crawl queue backs up: `fly scale count 2`.
 
 **`fly deploy` is fast (~90s).** Scraper changes ship quickly without a full CI pipeline rebuild.
 
-**Cost.** 1 shared CPU + 512MB memory always-on: ~$5–10/month. Second machine during crawl bursts adds another ~$5–10 transiently.
+**Cost.** 1 shared CPU + 1GB memory always-on: ~$8/month (see [estimated-infra-costs.md](../estimated-infra-costs.md)). Second machine during crawl bursts adds another ~$8 transiently.
 
 **Docker-native.** Playwright has an official Docker base image (`mcr.microsoft.com/playwright`) with all browser dependencies pre-installed. Zero dependency management.
 
@@ -62,7 +62,7 @@ Scale horizontally when bulk crawl queue backs up: `fly scale count 2`.
 **Negative**
 - Another vendor beyond Vercel and Supabase.
 - Fly.io machine occasionally restarts (Fly hardware maintenance) — handled by Inngest retry.
-- 512MB may be tight for 5 concurrent Playwright sessions; monitor and upgrade if needed.
+- 1GB sized for a pool of 4 warm pages. If bursty on-demand load drives concurrency past 5, either scale out (`fly scale count 2`) or upsize the VM (`memory_mb = 2048`). Monitor via Axiom.
 
 ## Alternatives considered
 

@@ -195,7 +195,9 @@ No custom rate limiting middleware yet outside Supabase Auth and the scrape dail
 
 ### Scraped content
 
-`scrape_cache` rows have no TTL (ADR-0012: never expire stable product pages). If a vendor requests takedown, rows are manually deleted and the re-hosted image is removed from Storage.
+`scrape_cache` rows default to a 90-day TTL (ADR-0012; known-stable domains extend to 1 year, volatile domains tighten to 14 days — see `scraper/config/domains.ts`). If a vendor requests takedown, rows are manually deleted and the re-hosted image is removed from Storage ahead of the TTL.
+
+The full compliance policy — User-Agent identification, robots.txt handling (bulk: honoured; on-demand: user-directed, not checked), vendor ToS denylist, takedown SLA (72h) — lives in [scraper/compliance.md](scraper/compliance.md). That doc is the single source of truth for any legal or vendor-facing question about the scraper.
 
 ### Log retention
 

@@ -69,11 +69,11 @@ Scale to 2 machines during active bulk crawl: ~$16/month for that period.
 
 ### Claude API — variable (the dominant cost)
 
-**Pricing (claude-opus-4-5, April 2026):**
+**Pricing (claude-opus-4-7, April 2026):**
 - Input: **$5.00 / million tokens**
 - Output: **$25.00 / million tokens**
 
-> ⚠️ ADR-0012 referenced old claude-3-opus pricing ($15/$75 per MTok). Current claude-opus-4-5 is 3× cheaper. The $0.06/scrape estimate in the ADR is now ~$0.04. The decision to use Opus remains correct — the cost concern is lower than documented.
+Cost per scrape includes **image tokens for the page screenshot** (~20% of input cost). Easy to forget — don't.
 
 **Per-scrape token estimate:**
 
@@ -89,8 +89,8 @@ Scale to 2 machines during active bulk crawl: ~$16/month for that period.
 
 | Model | Input cost | Output cost | **Total/scrape** |
 |---|---|---|---|
-| claude-opus-4-5 | 6,665 × $5/MTok = $0.033 | 200 × $25/MTok = $0.005 | **~$0.038** |
-| claude-sonnet-4-5 | 6,665 × $3/MTok = $0.020 | 200 × $15/MTok = $0.003 | **~$0.023** |
+| claude-opus-4-7 | 6,665 × $5/MTok = $0.033 | 200 × $25/MTok = $0.005 | **~$0.038** |
+| claude-sonnet-4-6 | 6,665 × $3/MTok = $0.020 | 200 × $15/MTok = $0.003 | **~$0.023** |
 
 **Monthly Claude cost at 3,000 live scrapes (conservative, 0% cache hit):**
 
@@ -278,6 +278,6 @@ Stripe is 4× more expensive than your entire infrastructure bill. This is norma
 - [ADR-0004 — Supabase](adr/0004-postgres-host.md)
 - [ADR-0009 — Storage (R2 migration trigger)](adr/0009-storage.md)
 - [ADR-0010 — Fly.io scraper host](adr/0010-scraper-host.md)
-- [ADR-0012 — Claude extraction](adr/0012-extraction-strategy.md) *(note: pricing in ADR reflects old claude-3-opus rates; current claude-opus-4-5 is ~3× cheaper)*
+- [ADR-0012 — Claude extraction](adr/0012-extraction-strategy.md) — cost model now aligned with this page (Opus 4.7, includes image tokens)
 - [ADR-0014 — Axiom log store](adr/0014-log-store.md)
 - [scraper/performance.md](scraper/performance.md) — cache hit rate improvement strategies

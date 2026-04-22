@@ -61,38 +61,50 @@ curl -X POST https://app.speclyy.com/api/admin/crawl \
 
 This inserts a `crawl_jobs` row (`status: discovering`) and emits a `crawl/discover` Inngest event.
 
-`ADMIN_API_KEY` is a long random string in environment variables. No auth UI needed for a 1–2 person team.
+### Admin endpoint hardening
+
+All `/api/admin/*` routes are gated by the same three-layer middleware so a leaked bearer can't be turned into a cost bomb:
+
+1. **Shared-secret bearer.** `ADMIN_API_KEY` is a 32-byte random string stored in Vercel's secret store (not checked in, not in `.env.example`). Rotated quarterly or immediately on suspected leak.
+2. **Per-IP rate limit.** 10 requests per minute via Vercel KV + a token-bucket middleware. Starting a crawl, checking status, and pausing/resuming together fit comfortably inside the limit for a legitimate operator.
+3. **Crawl cost ceiling.** `POST /api/admin/crawl` validates that `totalEstimatedUrls × $0.038` (Opus) stays below a `CRAWL_BUDGET_USD` envvar (default $100). Larger crawls return `402 Payment Required` and must be approved by setting a higher budget for the specific request.
+
+If `ADMIN_API_KEY` does leak, the per-IP limit and budget ceiling together cap the blast radius at ~$100 before someone notices in Axiom.
 
 ---
 
 ## Step 2 — URL discovery
 
-Two strategies run in sequence:
+Both strategies run **in parallel** — sitemap coverage varies wildly between vendors (Delta ≈ 95%, boutique brands often <50%), so we never depend on a single source.
 
-**Primary: sitemap.xml parsing**
+**sitemap.xml parsing**
 ```
-GET https://{domain}/sitemap.xml
+GET https://{domain}/sitemap.xml   (then any nested sitemap indexes)
 → filter URLs matching product path patterns (/product/, /bathroom/, /kitchen/, etc.)
-→ covers ~80-90% of catalog
 ```
 
-**Gap fill: category page crawl**
+**Category page crawl (always, not fallback)**
 ```
 Playwright renders collection/category pages
 → extracts all product links from rendered DOM
-→ catches products missing from sitemaps (JS-rendered catalogs, new products not yet sitemapped)
+→ catches JS-rendered catalogs, new products not yet sitemapped, and fully sitemap-less vendors
 ```
 
-All discovered URLs are inserted into `crawl_urls` with `status: pending`. URLs already in `scrape_cache` with a valid success result are marked `skipped` — no re-scrape needed.
+Both streams dedupe into the same `crawl_urls` table. URLs already in `scrape_cache` with a valid success result (and `expires_at > now()`) are marked `skipped` — no re-scrape needed.
+
+**robots.txt compliance.** Before inserting any URL into `crawl_urls`, the discovery step fetches `https://{domain}/robots.txt` and drops paths disallowed for our `User-Agent: Speclyy/1.0 (+https://speclyy.com/scraper)`. Domains with `respectRobots: false` in `domains.ts` bypass this check — that flag is only set when we have explicit written permission from the vendor.
+
+**ToS denylist.** The admin API refuses to start a crawl against any domain in `BLOCKED_DOMAINS` ([compliance.md](compliance.md)) — the request returns `403 Forbidden` with the block reason. Discovery never enqueues URLs for a blocked domain even if somehow scheduled, and emits a `crawl_rejected_tos` event to Axiom so the admin can see the skip.
 
 ```ts
-// De-duplicate against existing cache
+// De-duplicate against existing cache — skip only if unexpired success
 const [alreadyScraped] = await db
   .select({ id: scrapeCache.id })
   .from(scrapeCache)
   .where(and(
     eq(scrapeCache.urlHash, urlHash),
     eq(scrapeCache.status, 'success'),
+    gt(scrapeCache.expiresAt, new Date()),
   ))
   .limit(1)
 

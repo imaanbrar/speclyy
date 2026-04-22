@@ -44,7 +44,7 @@ The highest-priority items the moment the product is live with real designers.
 |---|---|
 | 🔜 **Activity-triggered pre-warm** | When a designer opens a project, ping Fly.io `/internal/warm` to top up the browser pool to 4 pages. Near-zero cold start for active sessions. P1 — before 10 designers onboarded. |
 | 🔜 **Bulk crawl priority queue** | Axiom query shows which domains designers paste most → bulk crawl those first. Cache flywheel grows faster. |
-| 🔜 **Claude Opus → Sonnet A/B test** | After 500 live scrapes, A/B test 20% of traffic on `claude-sonnet-4-5`. If completeness quality delta < 5%, downgrade permanently. Saves ~40% on Claude API cost. |
+| 🔜 **Claude Opus → Sonnet A/B test** | After 500 live scrapes, A/B test 20% of traffic on `claude-sonnet-4-6`. If completeness quality delta < 5%, downgrade permanently. Saves ~40% on Claude API cost. |
 
 ### Admin
 

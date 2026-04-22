@@ -64,6 +64,7 @@ Three constraints force the scraper off Vercel:
 | [bulk-crawl.md](bulk-crawl.md) | Admin-triggered brand crawls, URL discovery, daily batching, admin API |
 | [performance.md](performance.md) | Browser pool, pre-warm strategies, speculative scraping, cache flywheel |
 | [failure-tracking.md](failure-tracking.md) | Failure taxonomy, schema, admin API, Axiom queries, feedback loop |
+| [compliance.md](compliance.md) | User-Agent, robots.txt handling, ToS denylist, takedown SLA, ownership |
 
 ---
 
@@ -73,9 +74,9 @@ Three constraints force the scraper off Vercel:
 |---|---|---|
 | Scraper host | Fly.io | [ADR-0010](../adr/0010-scraper-host.md) |
 | Job queue | Inngest | [ADR-0011](../adr/0011-job-queue.md) |
-| Extraction model | Claude Opus (`claude-opus-4-5`) | [ADR-0012](../adr/0012-extraction-strategy.md) |
+| Extraction model | Claude Opus (`claude-opus-4-7`) | [ADR-0012](../adr/0012-extraction-strategy.md) |
 | HTML truncation | DOM-pruned ~15k chars + screenshot | [ADR-0012](../adr/0012-extraction-strategy.md) |
-| Scrape cache TTL | Never expire for stable product pages | [ADR-0012](../adr/0012-extraction-strategy.md) |
+| Scrape cache TTL | Default 90 days; extend to 1 year for known-stable domains via `domains.ts` | [ADR-0012](../adr/0012-extraction-strategy.md) |
 | Image re-hosting | Always re-host to Supabase Storage | [ADR-0009](../adr/0009-storage.md) |
 | Bulk crawl design | Inngest cron + fan-out + domain throttle | [ADR-0013](../adr/0013-bulk-crawl.md) |
 | Log store | Axiom | [ADR-0014](../adr/0014-log-store.md) |

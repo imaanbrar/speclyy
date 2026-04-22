@@ -21,6 +21,7 @@ Every scrape failure is categorised into one of these types:
 
 | `error_type` | Cause | Fix |
 |---|---|---|
+| `tos_blocked` | Domain is on `BLOCKED_DOMAINS` list (vendor ToS prohibits automated access). Pre-flight check, fails before Playwright runs. | **Not** a bug — policy enforcement. See [compliance.md](compliance.md). Do not "fix" by rotating proxies or tightening stealth. |
 | `anti_bot` | Site detected Playwright (403, Cloudflare challenge, redirect to CAPTCHA) | Add residential proxy rotation for this domain; tighten stealth config |
 | `timeout` | Page didn't load within 30s (slow CDN, heavy JS bundle) | Increase timeout for this domain; use `domcontentloaded` instead of `networkidle` |
 | `invalid_url` | URL doesn't point to a product page (404, redirect to homepage) | Validate URL shape before enqueueing |
@@ -29,6 +30,8 @@ Every scrape failure is categorised into one of these types:
 | `parse_error` | HTML structure unusual — Claude extracted data but it failed schema validation | Improve Claude prompt for this domain |
 | `image_upload_error` | Product image re-hosting to Supabase Storage failed | Transient — retry; save item without image if all retries fail |
 | `unknown` | Unclassified exception | Investigate; reclassify after root cause found |
+
+> `tos_blocked` is deliberately surfaced in Axiom alongside other failures so nobody mistakes a policy block for a scraper bug, and so spikes (e.g. a newly blocked domain designers keep pasting) are visible in the same dashboards.
 
 ---
 
@@ -40,7 +43,7 @@ The base `scrape_cache` table (defined in [database.md](../database.md)) has `st
 -- Migration: add failure tracking columns to scrape_cache
 ALTER TABLE public.scrape_cache
   ADD COLUMN error_type         text CHECK (error_type IN (
-                                  'anti_bot', 'timeout', 'invalid_url',
+                                  'tos_blocked', 'anti_bot', 'timeout', 'invalid_url',
                                   'claude_error', 'network_error', 'parse_error',
                                   'image_upload_error', 'unknown'
                                 )),
@@ -67,14 +70,14 @@ CREATE TABLE public.scrape_cache (
   extracted_data      jsonb,
   error_message       text,
   error_type          text CHECK (error_type IN (
-                        'anti_bot','timeout','invalid_url','claude_error',
+                        'tos_blocked','anti_bot','timeout','invalid_url','claude_error',
                         'network_error','parse_error','image_upload_error','unknown'
                       )),
   attempts            int NOT NULL DEFAULT 0,
   last_attempted_at   timestamptz,
   scrape_duration_ms  int,
   created_at          timestamptz NOT NULL DEFAULT now(),
-  expires_at          timestamptz
+  expires_at          timestamptz NOT NULL DEFAULT (now() + interval '90 days')
 );
 ```
 
@@ -83,7 +86,7 @@ CREATE TABLE public.scrape_cache (
 ```ts
 // lib/db/schema.ts (additions to scrapeCache table)
 export const scrapeCacheErrorType = pgEnum('scrape_cache_error_type', [
-  'anti_bot', 'timeout', 'invalid_url', 'claude_error',
+  'tos_blocked', 'anti_bot', 'timeout', 'invalid_url', 'claude_error',
   'network_error', 'parse_error', 'image_upload_error', 'unknown',
 ])
 
@@ -129,6 +132,8 @@ try {
 
 ```ts
 // scraper/lib/classify-error.ts
+// NOTE: `tos_blocked` is NOT handled here — it's set by the pre-flight compliance
+// check in scrape-url.ts before any exception can occur. See compliance.md.
 export function classifyError(err: unknown): ScrapeErrorType {
   const msg = String(err).toLowerCase()
   if (msg.includes('403') || msg.includes('cloudflare') || msg.includes('captcha'))

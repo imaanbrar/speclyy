@@ -194,15 +194,18 @@ CREATE TABLE public.scrape_cache (
   extracted_data      jsonb,                  -- raw Claude output
   error_message       text,                  -- raw exception message
   error_type          text CHECK (error_type IN (
-                        'anti_bot','timeout','invalid_url','claude_error',
+                        'tos_blocked','anti_bot','timeout','invalid_url','claude_error',
                         'network_error','parse_error','image_upload_error','unknown'
                       )),
   attempts            int NOT NULL DEFAULT 0,
   last_attempted_at   timestamptz,
   scrape_duration_ms  int,
   created_at          timestamptz NOT NULL DEFAULT now(),
-  expires_at          timestamptz             -- null = never; set for volatile pages
+  expires_at          timestamptz NOT NULL DEFAULT (now() + interval '90 days')
+                                          -- default TTL; overridden per domain in scraper/config/domains.ts
+                                          -- (stable domains → 1y, volatile domains → 14d)
 );
+CREATE INDEX scrape_cache_expires_at_idx  ON public.scrape_cache (expires_at);
 CREATE INDEX scrape_cache_url_hash_idx    ON public.scrape_cache (url_hash);
 CREATE INDEX scrape_cache_status_idx      ON public.scrape_cache (status);
 CREATE INDEX scrape_cache_error_type_idx  ON public.scrape_cache (error_type)

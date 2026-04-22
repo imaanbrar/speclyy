@@ -17,10 +17,10 @@ Beyond on-demand scraping (designer pastes one URL), Speclyy needs a way for the
 ## Decision
 
 **Crawl orchestration:** Inngest cron + fan-out
-**URL discovery:** sitemap.xml primary, category page crawl for gaps
+**URL discovery:** sitemap.xml **and** category-page crawl in parallel (sitemap coverage varies too much to rely on alone); robots.txt respected per `User-Agent: Speclyy/1.0 (+https://speclyy.com/scraper)`
 **Persistence:** `crawl_jobs` + `crawl_urls` tables (Postgres)
 **Rate limiting:** Inngest domain throttle (8s between requests per domain)
-**Admin trigger:** Protected API endpoint (`POST /api/admin/crawl`)
+**Admin trigger:** Protected API endpoint (`POST /api/admin/crawl`) — bearer + per-IP rate limit + per-crawl cost ceiling
 **Progress check:** `GET /api/admin/crawl/status` (returns JSON)
 
 ### Flow
@@ -65,7 +65,15 @@ POST /api/admin/crawl/:id/pause
 POST /api/admin/crawl/:id/resume
 ```
 
-`ADMIN_API_KEY` is a long random string in environment variables — no auth UI required.
+### Auth hardening
+
+A single bearer token is acceptable for a 1–2 person team only if the blast radius of a leak is bounded. Three gates, all required:
+
+- **Secret storage.** `ADMIN_API_KEY` is a 32-byte random string held in Vercel's secret store. It is never in `.env.example`, never committed. Rotated quarterly or on suspected leak.
+- **Per-IP rate limit.** 10 req/min per IP via Vercel KV. A legitimate operator's entire session (start + poll + pause) fits easily.
+- **Per-crawl cost ceiling.** `POST /api/admin/crawl` returns `402 Payment Required` when `totalEstimatedUrls × $0.038 > CRAWL_BUDGET_USD` (default $100). Caller must bump the envvar for one-off big crawls.
+
+Together these mean a leaked token caps at ~$100 of damage before Axiom alerts fire. Multi-person admin with per-person keys is on the roadmap (see [roadmap.md](../../roadmap.md)).
 
 ### Rate limit rationale
 
