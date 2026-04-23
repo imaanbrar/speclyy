@@ -2,7 +2,7 @@
 id: TASK-AUTH-05
 title: /sign-in page — Google OAuth + email magic link
 group: auth
-status: ready
+status: done
 estimate: 3
 dependencies: [TASK-AUTH-03]
 related_screens: ["1.1 Sign-In"]

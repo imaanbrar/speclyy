@@ -2,7 +2,7 @@
 id: TASK-AUTH-06
 title: /sign-in/verify — 6-digit OTP entry
 group: auth
-status: ready
+status: done
 estimate: 2
 dependencies: [TASK-AUTH-05]
 related_screens: ["1.2 Sign-In · Verify"]

@@ -2,7 +2,7 @@
 id: TASK-AUTH-04
 title: middleware.ts — auth + onboarding gate chain
 group: auth
-status: ready
+status: done
 estimate: 3
 dependencies: [TASK-AUTH-03]
 related_screens: []

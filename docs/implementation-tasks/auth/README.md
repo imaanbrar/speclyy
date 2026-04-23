@@ -8,14 +8,14 @@
 
 | ID | Title | Priority | Status | Est | Depends on |
 |----|-------|----------|--------|-----|------------|
-| [TASK-AUTH-01](TASK-AUTH-01-provision-supabase.md) | Provision shared-auth Supabase project + env wiring | P0 | 🔜 ready | 2 | — |
-| [TASK-AUTH-02](TASK-AUTH-02-db-migration-auth-tables.md) | Initial DB schema — profiles, organizations, members, subscriptions, trigger, RLS | P0 | 🔜 ready | 3 | TASK-AUTH-01 |
-| [TASK-AUTH-03](TASK-AUTH-03-supabase-ssr-clients.md) | Supabase SSR client factories + generated DB types | P0 | 🔜 ready | 2 | TASK-AUTH-01, TASK-AUTH-02 |
-| [TASK-AUTH-04](TASK-AUTH-04-middleware-gates.md) | `middleware.ts` — auth + onboarding gate chain | P0 | 🔜 ready | 3 | TASK-AUTH-03 |
-| [TASK-AUTH-05](TASK-AUTH-05-sign-in-page.md) | `/sign-in` page (Google + email magic link) | P0 | 🔜 ready | 3 | TASK-AUTH-03 |
-| [TASK-AUTH-06](TASK-AUTH-06-otp-verify-page.md) | `/sign-in/verify` — 6-digit OTP entry | P0 | 🔜 ready | 2 | TASK-AUTH-05 |
-| [TASK-AUTH-07](TASK-AUTH-07-auth-callback-route.md) | `/auth/callback` route handler | P0 | 🔜 ready | 2 | TASK-AUTH-03 |
-| [TASK-AUTH-08](TASK-AUTH-08-sign-out.md) | Sign-out server action + account-menu entry | P0 | 🔜 ready | 1 | TASK-AUTH-04 |
+| [TASK-AUTH-01](TASK-AUTH-01-provision-supabase.md) | Provision shared-auth Supabase project + env wiring | P0 | ✅ done | 2 | — |
+| [TASK-AUTH-02](TASK-AUTH-02-db-migration-auth-tables.md) | Initial DB schema — profiles, organizations, members, subscriptions, trigger, RLS | P0 | ✅ done | 3 | TASK-AUTH-01 |
+| [TASK-AUTH-03](TASK-AUTH-03-supabase-ssr-clients.md) | Supabase SSR client factories + generated DB types | P0 | ✅ done | 2 | TASK-AUTH-01, TASK-AUTH-02 |
+| [TASK-AUTH-04](TASK-AUTH-04-middleware-gates.md) | `middleware.ts` — auth + onboarding gate chain | P0 | ✅ done | 3 | TASK-AUTH-03 |
+| [TASK-AUTH-05](TASK-AUTH-05-sign-in-page.md) | `/sign-in` page (Google + email magic link) | P0 | ✅ done | 3 | TASK-AUTH-03 |
+| [TASK-AUTH-06](TASK-AUTH-06-otp-verify-page.md) | `/sign-in/verify` — 6-digit OTP entry | P0 | ✅ done | 2 | TASK-AUTH-05 |
+| [TASK-AUTH-07](TASK-AUTH-07-auth-callback-route.md) | `/auth/callback` route handler | P0 | ✅ done | 2 | TASK-AUTH-03 |
+| [TASK-AUTH-08](TASK-AUTH-08-sign-out.md) | Sign-out server action + account-menu entry | P0 | ✅ done | 1 | TASK-AUTH-04 |
 
 **Total estimate:** 18 points.
 
@@ -49,8 +49,9 @@
 
 ## Cross-cutting notes for implementers
 
+- **Temporary onboarding-bypass flag** (`NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING=1`). When set, both `decidePostAuthRedirect` and `middleware.ts` skip the onboarding gate so an authenticated user lands directly on `/projects`. This exists only so the auth group can be tested end-to-end before the onboarding group ships its Server Actions — the onboarding stub pages in `apps/web/src/app/(onboarding)/` don't flip `profiles.onboarding_completed_at`. **The first onboarding task must delete this flag and the two `process.env.NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING` branches in `packages/auth/src/redirect.ts` and `packages/auth/src/middleware.ts`.**
 - **Free is indefinite.** There is **no trial-expiry middleware gate** (superseding older ADR-0007 trial language). Paywall fires inside the PDF export Server Action only — out of scope for this group.
 - **Sign-in methods:** Google OAuth **and** email magic link / 6-digit OTP. Both routes use the same `/auth/callback`. (Older `mvp-decisions.md § 1` language about "Google only" is superseded by the onboarding plan in `implementation-plans/onboarding.md` which introduced email magic links; follow `architecture/auth.md`.)
-- **Cookie domain.** In prod, Supabase session cookies are configured on `.speclyy.com` so sibling apps on subdomains pick up the session automatically ([ADR-0019](../../architecture/adr/0019-multi-app-architecture.md)). Locally this stays on `localhost`; the cookie-domain setting is Supabase-dashboard config, not app code.
-- **Service-role key must never enter a client bundle.** It is used only in the Stripe webhook (billing group) and in ops scripts. All auth-group code uses the anon key with RLS.
+- **Cookie domain.** In prod, Supabase session cookies are configured on `.speclyy.com` so sibling apps on subdomains pick up the session automatically ([ADR-0019](../../architecture/adr/0019-multi-app-architecture.md)). Locally this stays on `localhost`. The cookie-domain attribute is set by `@supabase/ssr` in our app code (`cookieOptions.domain`, env-gated to production) — not via the Supabase dashboard.
+- **Secret key must never enter a client bundle.** It is used only in the Stripe webhook (billing group) and in ops scripts. All auth-group code uses the publishable key with RLS.
 - **`auth.uid()`** is the only user identity the DB should trust. Never read a user id from request headers or client input.

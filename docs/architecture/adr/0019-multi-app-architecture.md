@@ -78,7 +78,7 @@ Single-app and bundle subscriptions look identical to apps querying their entitl
 
 ### Cookie domain
 
-Supabase session cookies are set on `.speclyy.com` so any subdomain app (`app.speclyy.com`, future `<app2>.speclyy.com`) receives the session. This is a Supabase dashboard setting (Auth → URL configuration → cookie domain) — applied when the production apex domain is wired up, not required in local dev.
+Supabase session cookies are set on `.speclyy.com` so any subdomain app (`app.speclyy.com`, future `<app2>.speclyy.com`) receives the session. The cookie domain is set by `@supabase/ssr` in our app code (`cookieOptions.domain`, env-gated to production) — not via the Supabase dashboard, which no longer exposes a cookie-domain field. Local dev stays on `localhost` (no domain attribute needed).
 
 ## Rationale
 

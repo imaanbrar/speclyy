@@ -73,7 +73,7 @@ Out of scope: nation-state attacks, physical access, supply-chain compromise of 
 
 | Secret | Dev | Production |
 |---|---|---|
-| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` | Vercel env (server-only) |
+| `SUPABASE_SECRET_KEY` | `.env.local` | Vercel env (server-only) |
 | `STRIPE_SECRET_KEY` | `.env.local` | Vercel env (server-only) |
 | `STRIPE_WEBHOOK_SECRET` | `.env.local` | Vercel env (server-only) |
 | `INNGEST_SIGNING_KEY` | `.env.local` | Vercel env (server-only) |
@@ -92,9 +92,9 @@ Out of scope: nation-state attacks, physical access, supply-chain compromise of 
 
 ### No secrets in client bundles
 
-Any import of `SUPABASE_SERVICE_ROLE_KEY` or `STRIPE_SECRET_KEY` in a file that could be included in the browser bundle (client components, `use client` files) is a critical bug. Enforcement:
+Any import of `SUPABASE_SECRET_KEY` or `STRIPE_SECRET_KEY` in a file that could be included in the browser bundle (client components, `use client` files) is a critical bug. Enforcement:
 
-- ESLint rule (planned): flag `process.env.SUPABASE_SERVICE_ROLE_KEY` in client component files.
+- ESLint rule (planned): flag `process.env.SUPABASE_SECRET_KEY` in client component files.
 - Manual review gate on PRs touching auth or billing.
 
 ---

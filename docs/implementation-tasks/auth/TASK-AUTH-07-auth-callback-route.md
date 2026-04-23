@@ -2,7 +2,7 @@
 id: TASK-AUTH-07
 title: /auth/callback route handler
 group: auth
-status: ready
+status: done
 estimate: 2
 dependencies: [TASK-AUTH-03]
 related_screens: []

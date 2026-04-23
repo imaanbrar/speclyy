@@ -2,7 +2,7 @@
 id: TASK-AUTH-03
 title: Supabase SSR client factories + generated DB types
 group: auth
-status: ready
+status: done
 estimate: 2
 dependencies: [TASK-AUTH-01, TASK-AUTH-02]
 related_screens: []
@@ -23,7 +23,7 @@ Expose the three `@supabase/ssr` client factories — **browser**, **server**, *
   - `createBrowserClient()` — for Client Components and browser-only code.
   - `createServerClient()` — for RSC and Server Actions (reads cookies from `next/headers`).
   - `createMiddlewareClient(request, response)` — the `get/setAll` cookie-rewriting variant used in `middleware.ts`.
-  - `createServiceRoleClient()` — uses `SUPABASE_SERVICE_ROLE_KEY`. **Server-only**; importing from a client boundary must fail at build time.
+  - `createServiceRoleClient()` — uses `SUPABASE_SECRET_KEY`. **Server-only**; importing from a client boundary must fail at build time.
 - Typed with the Drizzle-generated types from TASK-AUTH-02 so `supabase.from('profiles').select()` is fully typed.
 - A `server-only` import (via the `server-only` npm package) on the service-role module to guarantee client-bundle exclusion.
 - Barrel `index.ts` with explicit exports — no `export *`.
@@ -38,7 +38,7 @@ Expose the three `@supabase/ssr` client factories — **browser**, **server**, *
 Scenario: Browser factory is safe in a Client Component
   Given a Client Component imports createBrowserClient
   When the app is built
-  Then the build succeeds and the resulting bundle does NOT contain SUPABASE_SERVICE_ROLE_KEY
+  Then the build succeeds and the resulting bundle does NOT contain SUPABASE_SECRET_KEY
 
 Scenario: Server factory reads cookies from next/headers
   Given an RSC that calls createServerClient().auth.getUser()
@@ -80,7 +80,7 @@ Scenario: Service-role client is server-only
   // middleware.ts — takes (request, response) from NextRequest/NextResponse
   export function createMiddlewareClient(request, response) { /* … */ }
 
-  // service-role.ts — imports 'server-only', uses SUPABASE_SERVICE_ROLE_KEY
+  // service-role.ts — imports 'server-only', uses SUPABASE_SECRET_KEY
   export function createServiceRoleClient() { /* … */ }
   ```
 - **Types.** Import the Drizzle-generated `Database` type and pass it as the generic: `createServerClient<Database>(…)`. Every factory returns the typed `SupabaseClient<Database>`.

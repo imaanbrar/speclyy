@@ -2,7 +2,7 @@
 id: TASK-AUTH-08
 title: Sign-out server action + account-menu entry
 group: auth
-status: ready
+status: done
 estimate: 1
 dependencies: [TASK-AUTH-04]
 related_screens: ["3.1 Projects List"]

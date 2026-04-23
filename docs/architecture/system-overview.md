@@ -225,7 +225,7 @@ Full detail: [scraper/bulk-crawl.md](scraper/bulk-crawl.md)
 ```
 
 Key rules:
-- `SUPABASE_SERVICE_ROLE_KEY` only in Route Handlers and the scraper — never in RSC, Server Actions, or client bundles.
+- `SUPABASE_SECRET_KEY` only in Route Handlers and the scraper — never in RSC, Server Actions, or client bundles.
 - Admin APIs authenticated via shared secret; never exposed to browser.
 - Stripe webhooks verified via `stripe.webhooks.constructEvent` before any DB write.
 
