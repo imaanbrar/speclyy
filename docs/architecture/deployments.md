@@ -164,8 +164,8 @@ Supabase does not support schema rollback. The strategy is:
 | Variable | Vercel scope | Fly scope | Notes |
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | All | — | Public |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | — | Public |
-| `SUPABASE_SERVICE_ROLE_KEY` | Production + Preview | — | Server-only |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | All | — | Public |
+| `SUPABASE_SECRET_KEY` | Production + Preview | — | Server-only |
 | `DATABASE_URL` | Production + Preview | — | Direct Postgres connection |
 | `DATABASE_URL_POOLED` | Production + Preview | — | PgBouncer |
 | `STRIPE_SECRET_KEY` | Production + Preview | — | `sk_live_` prod, `sk_test_` preview |

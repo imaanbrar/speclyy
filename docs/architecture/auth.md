@@ -18,7 +18,7 @@ Speclyy is the first app; more will follow under `*.speclyy.com`. The data archi
 
 **Per-app databases** hold app-specific data (projects, documents, app state) and reference `user_id` / `organization_id` as opaque UUIDs. No cross-database foreign keys. Apps verify Supabase JWTs to establish `auth.uid()` and read membership/entitlements from the shared project.
 
-**Cookie domain.** Supabase session cookies are set on `.speclyy.com` so any subdomain app receives the session automatically (configured in Supabase dashboard when prod apex is wired up).
+**Cookie domain.** Supabase session cookies are set on `.speclyy.com` so any subdomain app receives the session automatically. The leading dot is mandatory — without it the cookie is scoped to the exact host. Cookie attributes are controlled by `@supabase/ssr` in our app code (`cookieOptions: { domain: '.speclyy.com' }` env-gated to production, in [`packages/auth/src/server.ts`](../../packages/auth/src/server.ts) and [`middleware.ts`](../../packages/auth/src/middleware.ts)) — there is no longer a "cookie domain" field in the Supabase dashboard.
 
 **UI copy vs schema.** Speclyy's UI uses the word "Studio"; the schema calls it an `organization`. The onboarding studio step writes `type = 'studio'`; Skip writes `type = 'individual'`. Users can convert individual → studio later from Settings.
 
@@ -143,7 +143,7 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

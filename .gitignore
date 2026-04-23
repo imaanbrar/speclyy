@@ -8,6 +8,7 @@ node_modules/
 dist/
 .astro/
 out/
+*.tsbuildinfo
 
 # Environment
 .env

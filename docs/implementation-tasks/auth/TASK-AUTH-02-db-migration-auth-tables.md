@@ -2,7 +2,7 @@
 id: TASK-AUTH-02
 title: Initial DB schema — profiles, organizations, members, subscriptions, trigger, RLS
 group: auth
-status: ready
+status: done
 estimate: 3
 dependencies: [TASK-AUTH-01]
 related_screens: []

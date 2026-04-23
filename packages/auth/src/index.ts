@@ -1,8 +1,5 @@
 export { createBrowserSupabase } from './browser'
 export { createServerSupabase } from './server'
-export {
-  updateSession,
-  requireAuth,
-  requireOnboarding,
-  requireActiveSubscription,
-} from './middleware'
+export { updateSession } from './middleware'
+export { sanitizeNext, decidePostAuthRedirect } from './redirect'
+export { sharedCookieOptions, COOKIE_DOMAIN } from './cookies'
