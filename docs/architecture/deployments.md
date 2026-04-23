@@ -126,7 +126,9 @@ Scraper deploys are **not** automatic — they require a manual `fly deploy`. Th
 
 ## Migration promotion
 
-Migrations are the highest-risk deploy step. All migrations follow this flow:
+> **Pre-launch status.** No Supabase project is provisioned yet — the first migration to land is the *initial* schema (auth tables, subscriptions, `processed_webhook_events`, per-app tables). There is no live data, no backfill risk, and no "dangerous migration" ceremony to perform for the initial bring-up. The flow below applies once we're live; until then, treat schema PRs as regular feature PRs.
+
+Migrations are the highest-risk deploy step once production data exists. All migrations follow this flow:
 
 ```
 1. Write migration in supabase/migrations/<timestamp>_description.sql

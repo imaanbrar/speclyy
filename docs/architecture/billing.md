@@ -117,6 +117,17 @@ export async function createProSubscription(interval: 'monthly' | 'annual') {
 }
 ```
 
+### Server → client: `clientSecret` hand-off
+
+The `clientSecret` returned by `createProSubscription` is a one-use capability. Pass it from the Server Action (plan step) to the checkout page via an **HttpOnly cookie** — never a URL / query string:
+
+- Name: `speclyy_cs`
+- Flags: `HttpOnly`, `Secure`, `SameSite=Lax`
+- `path=/onboarding/checkout`, `maxAge=600` (10 minutes)
+- Single-use: the checkout page reads it server-side and clears it on first render. A reload without a fresh cookie redirects back to `/onboarding/plan`.
+
+This keeps the secret out of Referer headers, browser history, and server access logs.
+
 ### Client: mount PaymentElement + confirm
 
 ```tsx
@@ -232,6 +243,8 @@ await db
     where: sql`subscriptions.updated_at < ${new Date()}`,
   })
 ```
+
+`subscriptions.user_id` carries a `UNIQUE` constraint (see [auth.md § Data model](auth.md#data-model)) — it's both the MVP one-subscription-per-user invariant ([ADR-0017](adr/0017-subscription-ownership.md)) and the conflict target this upsert relies on.
 
 A `past_due` event arriving after `active` (due to retry) will not overwrite the newer `active` state.
 

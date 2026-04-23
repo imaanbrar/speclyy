@@ -204,6 +204,8 @@ export const config = {
 
 See [ADR-0019](adr/0019-multi-app-architecture.md) for rationale. All tables below live in the shared auth project — they are account-level and used by every app.
 
+> **Greenfield.** The shared auth Supabase project has no pre-existing schema; the DDL below is the **initial** schema, not an incremental migration against live data. Drizzle still records it as its first migration file, but there is no production data to consider.
+
 ```sql
 -- auth.users is Supabase-managed. Never modify.
 
@@ -214,6 +216,9 @@ CREATE TABLE public.profiles (
   market text,  -- free text; canonical launch values produced by the UI
   onboarding_completed_at timestamptz,
   is_onboarded boolean GENERATED ALWAYS AS (onboarding_completed_at IS NOT NULL) STORED,
+  has_visited_dashboard boolean NOT NULL DEFAULT false,
+  -- Flipped true by the /projects page on first render. Drives the "show Free Welcome once"
+  -- rule for /welcome (Speclyy only; not an account-level signal consumed by sibling apps).
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -247,7 +252,9 @@ CREATE INDEX organization_members_user_id_idx ON public.organization_members (us
 
 CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
+  -- UNIQUE encodes the one-subscription-per-user MVP invariant (ADR-0017)
+  -- and is the conflict target for the Stripe webhook handler's ON CONFLICT upsert.
   status text NOT NULL CHECK (status IN (
     'active','past_due','canceled','incomplete','incomplete_expired'
   )),
@@ -311,6 +318,12 @@ CREATE POLICY "organizations: admin update" ON public.organizations
     )
   );
 
+-- Any authenticated user may create an organization (their first one, during onboarding).
+-- Pairs with the organization_members self-INSERT policy: an org is only reachable if the
+-- creator also links themselves via organization_members in the same Server Action.
+CREATE POLICY "organizations: authenticated insert" ON public.organizations
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "organization_members: self read" ON public.organization_members
@@ -320,7 +333,11 @@ CREATE POLICY "organization_members: self read" ON public.organization_members
       SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()
     )
   );
--- INSERT/UPDATE performed by Server Actions (onboarding, future invites); no user-facing write policy.
+
+-- Users may insert their own membership rows (onboarding Server Action links profile → org).
+-- No user-facing UPDATE/DELETE policy; invites/removals will use a dedicated RPC later.
+CREATE POLICY "organization_members: self insert" ON public.organization_members
+  FOR INSERT WITH CHECK (user_id = auth.uid());
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 

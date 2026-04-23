@@ -302,6 +302,8 @@ export const db = drizzle(client, { schema })
 
 ## Migration workflow
 
+> **Greenfield today.** No Supabase project is provisioned yet and no production data exists. The first "migration" Drizzle generates *is* the initial schema — auth tables, subscriptions, `processed_webhook_events`, and the per-app tables all land together or in the first few migrations, without the usual "add column nullable, backfill, then NOT NULL" dance. Treat the workflow below as the steady-state pattern once we're live.
+
 ```bash
 # 1. Edit schema in lib/db/schema.ts
 # 2. Generate migration — produces a readable .sql file
