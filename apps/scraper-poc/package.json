@@ -1,0 +1,23 @@
+{
+  "name": "@speclyy/scraper-poc",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scrape": "tsx src/cli.ts",
+    "web": "tsx src/web-server.ts",
+    "typecheck": "tsc --noEmit",
+    "cache:clear": "rm -rf .cache"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}

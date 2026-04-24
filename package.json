@@ -9,7 +9,8 @@
     "build:web":      "pnpm --filter @speclyy/web build",
     "build:marketing":"pnpm --filter @speclyy/marketing build",
     "build:design":   "pnpm --filter @speclyy/design build",
-    "build":          "pnpm --filter './apps/*' build"
+    "build":          "pnpm --filter './apps/*' build",
+    "scrape":         "pnpm --filter @speclyy/scraper-poc scrape"
   },
   "engines": {
     "node": ">=20",

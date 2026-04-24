@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Speclyy — scraper POC</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <h1>Speclyy scraper POC</h1>
+        <p class="sub">Paste a product URL. We try vendor adapters first, then JSON-LD, then rendered fallbacks.</p>
+      </header>
+
+      <form id="extract-form" class="extract-form" autocomplete="off">
+        <input
+          id="url-input"
+          name="url"
+          type="url"
+          required
+          placeholder="https://floydhome.com/products/lift-kit-bed-framework"
+          spellcheck="false"
+        />
+        <button id="extract-btn" type="submit">Extract</button>
+      </form>
+
+      <section id="status" class="status" hidden></section>
+
+      <section id="result" class="result" hidden>
+        <div class="result-header">
+          <span id="result-path" class="pill"></span>
+          <span id="result-timing" class="meta"></span>
+        </div>
+        <div class="result-body">
+          <figure class="result-image">
+            <img id="result-img" alt="" />
+            <figcaption id="result-img-caption" class="meta"></figcaption>
+          </figure>
+          <dl id="result-fields" class="result-fields"></dl>
+        </div>
+        <details class="result-raw">
+          <summary>Raw response</summary>
+          <pre id="result-raw-json"></pre>
+        </details>
+      </section>
+    </main>
+
+    <script src="/client.js" defer></script>
+  </body>
+</html>
