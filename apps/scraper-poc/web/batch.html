@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Speclyy — batch scraper</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell shell-wide">
+      <nav class="nav">
+        <a href="/" class="nav-item">Single</a>
+        <a href="/batch" class="nav-item active">Batch</a>
+      </nav>
+      <header>
+        <h1>Batch extract</h1>
+        <p class="sub">Paste URLs, one per line. They run in parallel.</p>
+      </header>
+
+      <form id="batch-form" class="batch-form" autocomplete="off">
+        <textarea
+          id="urls-input"
+          name="urls"
+          rows="6"
+          placeholder="https://floydhome.com/products/lift-kit-bed-framework&#10;https://www.westelm.com/products/...&#10;https://www.crateandbarrel.ca/..."
+          spellcheck="false"
+        ></textarea>
+        <div class="batch-actions">
+          <button id="batch-btn" type="submit">Extract all</button>
+          <label class="cache-toggle">
+            <input id="no-cache" type="checkbox" />
+            <span>Bypass cache</span>
+          </label>
+          <span id="batch-status" class="meta"></span>
+        </div>
+      </form>
+
+      <div id="batch-results" class="batch-results"></div>
+    </main>
+
+    <script src="/batch.js" defer></script>
+  </body>
+</html>

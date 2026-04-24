@@ -7,6 +7,7 @@
 const form          = document.getElementById('extract-form')
 const urlInput      = document.getElementById('url-input')
 const button        = document.getElementById('extract-btn')
+const noCacheInput  = document.getElementById('no-cache')
 const statusEl      = document.getElementById('status')
 const resultEl      = document.getElementById('result')
 const pathEl        = document.getElementById('result-path')
@@ -155,7 +156,7 @@ form.addEventListener('submit', async (e) => {
     const res = await fetch('/api/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, noCache: noCacheInput.checked }),
     })
     const body = await res.json().catch(() => ({ error: 'non-JSON server response' }))
     if (!res.ok) {

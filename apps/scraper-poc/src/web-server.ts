@@ -1,9 +1,10 @@
 // Local web UI for the adapter-first scrape pipeline.
 //
-// Two routes only:
-//   GET  /             → static HTML shell (URL input + result card)
+// Routes:
+//   GET  /             → single-URL page (index.html)
+//   GET  /batch        → batch page (paste N URLs, run in parallel)
 //   POST /api/extract  → JSON { url } → JSON ScrapeResult
-// Static assets (index.html / style.css / client.js) live in ../web/.
+// Static assets (*.html / style.css / *.js) live in ../web/.
 //
 // We use node:http directly to keep the POC zero-dep. If this grows, swap to
 // Hono/Fastify — the shape is the same.
@@ -82,7 +83,7 @@ async function handleExtract(req: IncomingMessage, res: ServerResponse): Promise
   } catch (err) {
     return json(res, 413, { error: (err as Error).message })
   }
-  let parsed: { url?: unknown }
+  let parsed: { url?: unknown; noCache?: unknown }
   try { parsed = JSON.parse(body) } catch {
     return json(res, 400, { error: 'invalid JSON body' })
   }
@@ -93,12 +94,13 @@ async function handleExtract(req: IncomingMessage, res: ServerResponse): Promise
   try { new URL(url) } catch {
     return json(res, 400, { error: `malformed URL: ${url}` })
   }
+  const noCache = parsed.noCache === true
 
   const started = Date.now()
   try {
-    const result = await scrape(url)
+    const result = await scrape(url, { noCache })
     const wallMs = Date.now() - started
-    console.error(`[web] scraped ${url} → ${result.source} / ${result.entry.status} in ${wallMs}ms`)
+    console.error(`[web] scraped ${url} → ${result.source} / ${result.entry.status} in ${wallMs}ms${noCache ? ' (noCache)' : ''}`)
     json(res, 200, { ...result, wallMs })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -117,8 +119,10 @@ const server = createServer(async (req, res) => {
     }
     if (method === 'GET') {
       if (pathname === '/' || pathname === '/index.html') return await serveStatic(res, 'index.html')
+      if (pathname === '/batch' || pathname === '/batch.html') return await serveStatic(res, 'batch.html')
       if (pathname === '/style.css')  return await serveStatic(res, 'style.css')
       if (pathname === '/client.js')  return await serveStatic(res, 'client.js')
+      if (pathname === '/batch.js')   return await serveStatic(res, 'batch.js')
       if (pathname === '/favicon.ico') {
         res.writeHead(204); res.end(); return
       }

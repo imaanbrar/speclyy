@@ -1,4 +1,4 @@
-// Main scrape pipeline — adapter-first, plain → Zyte-HTTP → Zyte-browser.
+// Main scrape pipeline — adapter-first, plain → Zyte (one mode by host).
 //
 // Fetch layers run in order; first usable data wins.
 //
@@ -8,21 +8,24 @@
 //     all non-null; partial data falls through. 4xx/5xx/timeout also
 //     falls through.
 //
-//   Layer 1b (paid, ~2–5s): Zyte httpResponseBody — proxy rotation
-//     without the browser. Fast; clears IP/TLS-fingerprint blocks
-//     (Wayfair, Delta, Rejuvenation). Fails on Akamai JS challenges.
-//     Up to 3 anti-bot retries.
+//   Layer 1b (paid): Zyte — mode picked by host. No cross-fallback.
+//     - crateandbarrel.* → Zyte browser (proxy endpoint, ~10–30s).
+//       Akamai JS challenges need a real browser; the HTTP endpoint
+//       and Zyte's datacenter proxy pool both get 403'd.
+//     - everything else → Zyte HTTP (REST API endpoint, ~2–5s).
+//       Proxy rotation without a browser. Clears IP/TLS blocks
+//       (Wayfair, Delta, Rejuvenation). Faster than proxy mode for
+//       non-browser fetches — the API short-circuits the CONNECT
+//       tunnel round-trip.
+//     Up to 3 anti-bot retries per attempt. If Layer 1b fails for the
+//     chosen mode, the scrape fails and the error is cached.
 //
-//   Layer 1c (paid, ~10–30s): Zyte browserHtml — real headless Chrome +
-//     waitForSelector. Final fallback when Layer 1b produces an all-null
-//     extraction. Up to 3 anti-bot retries. If this fails, the whole
-//     scrape fails and the error is cached.
-//
-// Layers 1b/1c only run if ZYTE_API_KEY is set and USE_ZYTE!=0.
+// Layer 1b only runs if ZYTE_API_KEY is set and USE_ZYTE!=0.
 //
 // Extraction order inside each fetch layer:
 //   i.   Adapters in registry order (matches() first hit wins).
-//   ii.  JSON-LD Product block → Claude normalisation.
+//   ii.  JSON-LD Product block → deterministic normaliser → optional
+//        Claude polish (unless USE_CLAUDE_JSONLD=0).
 //   iii. Full HTML → Claude extraction.
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -246,22 +249,33 @@ async function tryRenderedSource(
   fetchSource: 'zyte-http' | 'zyte-browser',
   maxAntiBotAttempts: number,
 ): Promise<ScrapeResult | null> {
-  // Fetch with anti-bot retry. Some CDNs (Akamai, Cloudflare) throw a
-  // transient challenge/interstitial on the first hit but serve the real
-  // page on a retry — often because the first response set cookies that
-  // the next one carries, or the edge routed us to a different POP.
-  // Hard fetch errors (timeout/network/crash) still fail-fast; only the
-  // "got HTML but it's an anti-bot page" case retries.
-  const MAX_ANTI_BOT_ATTEMPTS = maxAntiBotAttempts;
+  // Fetch with retry. Two failure modes collapse into the same attempt
+  // counter:
+  //   (a) hard fetch error (timeout / network / 5xx from Zyte itself)
+  //   (b) "got HTML but it's an anti-bot page" (Akamai / Cloudflare
+  //       challenge that sometimes clears on retry because cookies from
+  //       the first response carry, or the edge routes to a different POP)
+  // Sleep 1s between attempts.
+  const MAX_ATTEMPTS = maxAntiBotAttempts;
   let assets: Awaited<ReturnType<RenderedFetch>> | null = null;
-  let lastAntiBot: string | null = null;
-  for (let attempt = 1; attempt <= MAX_ANTI_BOT_ATTEMPTS; attempt++) {
+  let lastError: string | null = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     let candidate: Awaited<ReturnType<RenderedFetch>>;
     try {
       candidate = await fetcher();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[scrape] ${fetchSource} fetch failed: ${msg}`);
+      lastError = `fetch failed: ${msg}`;
+      if (attempt < MAX_ATTEMPTS) {
+        console.error(
+          `[scrape] ${fetchSource} ${lastError} (attempt ${attempt}/${MAX_ATTEMPTS}) — retrying in 1s`,
+        );
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      console.error(
+        `[scrape] ${fetchSource} ${lastError} — all ${MAX_ATTEMPTS} attempts exhausted`,
+      );
       return null;
     }
     if (process.env.DEBUG)
@@ -271,17 +285,17 @@ async function tryRenderedSource(
       assets = candidate;
       break;
     }
-    lastAntiBot = antiBot;
-    if (attempt < MAX_ANTI_BOT_ATTEMPTS) {
+    lastError = `blocked by ${antiBot}`;
+    if (attempt < MAX_ATTEMPTS) {
       console.error(
-        `[scrape] ${fetchSource} blocked by ${antiBot} (attempt ${attempt}/${MAX_ANTI_BOT_ATTEMPTS}) — retrying in 1s`,
+        `[scrape] ${fetchSource} ${lastError} (attempt ${attempt}/${MAX_ATTEMPTS}) — retrying in 1s`,
       );
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
   if (!assets) {
     console.error(
-      `[scrape] ${fetchSource} blocked by ${lastAntiBot} after ${MAX_ANTI_BOT_ATTEMPTS} attempts`,
+      `[scrape] ${fetchSource} ${lastError} after ${MAX_ATTEMPTS} attempts`,
     );
     return null;
   }
@@ -313,15 +327,38 @@ async function tryRenderedSource(
   }
 }
 
-export async function scrape(rawUrl: string): Promise<ScrapeResult> {
+export interface ScrapeOptions {
+  /** Bypass the cache entirely — always re-run the pipeline. Successful
+   *  result still gets written back to cache. */
+  noCache?: boolean;
+}
+
+export async function scrape(
+  rawUrl: string,
+  options: ScrapeOptions = {},
+): Promise<ScrapeResult> {
   const url = normaliseUrl(rawUrl);
   const hash = urlHash(rawUrl);
 
-  const cached = await readCache(hash);
-  if (cached) return { source: 'cache', entry: cached };
+  // Only serve successes from cache. Failed entries stay on disk for
+  // debugging (overwritten on next run), but a re-extract request always
+  // re-runs the pipeline — retrying transient errors is exactly what the
+  // user expects when they resubmit.
+  if (!options.noCache) {
+    const cached = await readCache(hash);
+    if (cached && cached.status === 'success') {
+      return { source: 'cache', entry: cached };
+    }
+  }
 
   const started = Date.now();
   const useZyte = !!process.env.ZYTE_API_KEY && process.env.USE_ZYTE !== '0';
+
+  // Akamai-protected. Zyte HTTP (REST or proxy) both 403 on C&B — only
+  // the browser endpoint can resolve the JS challenge. Every other host
+  // goes through Zyte HTTP (faster, no browser tax).
+  const hostname = new URL(url).hostname.toLowerCase();
+  const isCrateAndBarrel = /(^|\.)crateandbarrel\.(com|ca)$/.test(hostname);
 
   try {
     // ===== Layer 1a: plain fetch =====
@@ -376,7 +413,28 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
       );
     }
 
-    // ===== Layer 1b: Zyte HTTP (proxy rotation, no browser) =====
+    // ===== Layer 1b: Zyte — mode picked by host =====
+    if (isCrateAndBarrel) {
+      const browserResult = await tryRenderedSource(
+        url,
+        hash,
+        started,
+        async () => {
+          const z = await fetchPageViaZyteBrowser(url);
+          return {
+            html: z.html,
+            screenshotBase64: null,
+            fetchDurationMs: z.fetchDurationMs,
+          };
+        },
+        'zyte+claude',
+        'zyte-browser',
+        3,
+      );
+      if (browserResult) return browserResult;
+      throw new Error('all_paths_exhausted: plain + zyte-browser failed');
+    }
+
     const httpResult = await tryRenderedSource(
       url,
       hash,
@@ -394,28 +452,7 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
       3,
     );
     if (httpResult) return httpResult;
-
-    // ===== Layer 1c: Zyte browser (full headless + waitForSelector) =====
-    const browserResult = await tryRenderedSource(
-      url,
-      hash,
-      started,
-      async () => {
-        const z = await fetchPageViaZyteBrowser(url);
-        return {
-          html: z.html,
-          screenshotBase64: null,
-          fetchDurationMs: z.fetchDurationMs,
-        };
-      },
-      'zyte+claude',
-      'zyte-browser',
-      3,
-    );
-    if (browserResult) return browserResult;
-    throw new Error(
-      'all_paths_exhausted: plain + zyte-http + zyte-browser all failed',
-    );
+    throw new Error('all_paths_exhausted: plain + zyte-http failed');
   } catch (err) {
     const durationMs = Date.now() - started;
     const message = err instanceof Error ? err.message : String(err);

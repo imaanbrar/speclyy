@@ -43,8 +43,28 @@ function normaliseBrand(x: unknown): string | null {
   return null;
 }
 
+/**
+ * Some feeds (Kichler) prepend their domain to already-absolute image URLs,
+ * producing "https://www.kichler.com/https://images.ctfassets.net/...".
+ * If we see an embedded http(s):// at a path boundary, treat the inner
+ * one as the real URL. The path-boundary check (preceding char is `/`)
+ * avoids mangling legit URLs that contain `http` in a query string like
+ * "https://x.com?redirect=https://y.com".
+ */
+function unwrapNestedUrl(url: string): string {
+  const last = Math.max(
+    url.lastIndexOf('https://'),
+    url.lastIndexOf('http://'),
+  );
+  if (last > 0 && url[last - 1] === '/') return url.slice(last);
+  return url;
+}
+
 function normaliseImage(x: unknown): string | null {
-  if (typeof x === 'string') return asString(x);
+  if (typeof x === 'string') {
+    const s = asString(x);
+    return s ? unwrapNestedUrl(s) : null;
+  }
   if (Array.isArray(x)) {
     for (const item of x) {
       const r = normaliseImage(item);
@@ -53,9 +73,13 @@ function normaliseImage(x: unknown): string | null {
     return null;
   }
   if (x && typeof x === 'object') {
+    // Recurse rather than asString — some feeds wrap the URL in an array
+    // *inside* the ImageObject (e.g. Roche Bobois: `{url: ['https://...']}`).
     const o = x as Record<string, unknown>;
     return (
-      asString(o.url) ?? asString(o['@id']) ?? asString(o.contentUrl)
+      normaliseImage(o.url) ??
+      normaliseImage(o['@id']) ??
+      normaliseImage(o.contentUrl)
     );
   }
   return null;

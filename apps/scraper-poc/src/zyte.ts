@@ -1,64 +1,55 @@
-// Zyte API — two fetch modes.
-// https://docs.zyte.com/zyte-api/reference/http.html
+// Zyte — two implementations, picked per-URL by the caller.
 //
-// Both modes share the same proxy-rotation + anti-bot infrastructure; they
-// differ only in whether Zyte spins up a browser.
+// --- fetchPageViaZyteHttp ---------------------------------------------
+// Uses Zyte's REST API endpoint (POST https://api.zyte.com/v1/extract
+// with httpResponseBody: true). Empirically faster than tunneling the
+// same request through the proxy endpoint — the API short-circuits when
+// no browser is needed, while the proxy still negotiates a CONNECT
+// tunnel + TLS per request.
 //
-//   fetchPageViaZyteHttp     (httpResponseBody, ~2-5s):
-//     Raw HTTP fetch through Zyte's proxy pool. No JS execution, no page
-//     render. Clears most IP/TLS-fingerprint blocks (Wayfair, Delta,
-//     Rejuvenation) at a fraction of the browser cost. Fails on sites
-//     that ship empty client-hydrated markup or interstitial JS challenges.
+// --- fetchPageViaZyteBrowser ------------------------------------------
+// Uses Zyte's proxy endpoint (api.zyte.com:8011) with the
+// `Zyte-Browser-Html: true` header. axios handles proxy tunneling per
+// the sample in the Zyte docs. Used for Crate & Barrel — the one site
+// that needs a real browser because of Akamai JS challenges.
 //
-//   fetchPageViaZyteBrowser  (browserHtml, ~10-30s):
-//     Real headless Chrome with scriptable actions. Required for Akamai/
-//     PerimeterX JS challenges (Crate & Barrel, Kohler) and client-
-//     hydrated JSON-LD (West Elm, Rejuvenation). We pair it with a
-//     `waitForSelector` action on non-empty JSON-LD so Zyte blocks until
-//     the real payload shows up instead of returning the challenge page.
+// scrape.ts picks which one to call based on hostname — no cross-
+// fallback. If the chosen Zyte mode fails, the scrape fails.
 
-const ENDPOINT = 'https://api.zyte.com/v1/extract';
+import axios, { AxiosError } from 'axios';
+
+const API_ENDPOINT = 'https://api.zyte.com/v1/extract';
+const PROXY_HOST = 'api.zyte.com';
+const PROXY_PORT = 8011;
 
 export interface ZyteResult {
   html: string;
   fetchDurationMs: number;
 }
 
-interface ZyteAction {
-  action: 'waitForSelector';
-  selector: { type: 'css'; value: string; state?: 'attached' | 'visible' };
-  timeout?: number;
-  onError?: 'return' | 'fail';
-}
+// =======================================================================
+// Implementation 1 — Zyte REST API (HTTP / no browser)
+// =======================================================================
 
-interface ZyteRequestBody {
-  url: string;
-  browserHtml?: boolean;
-  httpResponseBody?: boolean;
-  actions?: ZyteAction[];
-  geolocation?: string;
-}
-
-interface ZyteResponse {
-  url?: string;
-  statusCode?: number;
-  browserHtml?: string;
+interface ZyteApiResponse {
   httpResponseBody?: string; // base64
 }
 
-async function callZyte(body: ZyteRequestBody): Promise<ZyteResponse> {
+async function callZyteApi(
+  body: Record<string, unknown>,
+): Promise<ZyteApiResponse> {
   const apiKey = process.env.ZYTE_API_KEY;
   if (!apiKey) throw new Error('ZYTE_API_KEY not set');
 
-  // Optional egress-country pin. Williams-Sonoma family sites geoblock EU
-  // IPs with a "not available in your region" page; set ZYTE_GEOLOCATION
-  // to a two-letter ISO code (US / CA / GB / ...) if you hit that.
-  if (process.env.ZYTE_GEOLOCATION) body.geolocation = process.env.ZYTE_GEOLOCATION;
+  // Williams-Sonoma family sites geoblock EU IPs with a regional error
+  // page; pin egress country when configured.
+  if (process.env.ZYTE_GEOLOCATION) {
+    body.geolocation = process.env.ZYTE_GEOLOCATION;
+  }
 
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(API_ENDPOINT, {
     method: 'POST',
     headers: {
-      // HTTP Basic: API key as username, empty password.
       Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
       'Content-Type': 'application/json',
       'Accept-Encoding': 'gzip',
@@ -71,33 +62,64 @@ async function callZyte(body: ZyteRequestBody): Promise<ZyteResponse> {
     const text = await res.text().catch(() => '');
     throw new Error(`Zyte ${res.status}: ${text.slice(0, 500)}`);
   }
-  return (await res.json()) as ZyteResponse;
+  return (await res.json()) as ZyteApiResponse;
 }
 
 export async function fetchPageViaZyteHttp(url: string): Promise<ZyteResult> {
   const started = Date.now();
-  const payload = await callZyte({ url, httpResponseBody: true });
-  if (!payload.httpResponseBody) throw new Error('Zyte response missing httpResponseBody');
-  const html = Buffer.from(payload.httpResponseBody, 'base64').toString('utf-8');
+  const payload = await callZyteApi({ url, httpResponseBody: true });
+  if (!payload.httpResponseBody) {
+    throw new Error('Zyte response missing httpResponseBody');
+  }
+  const html = Buffer.from(payload.httpResponseBody, 'base64').toString(
+    'utf-8',
+  );
   return { html, fetchDurationMs: Date.now() - started };
 }
 
-export async function fetchPageViaZyteBrowser(url: string): Promise<ZyteResult> {
+// =======================================================================
+// Implementation 2 — Zyte Proxy (browser-rendered)
+// =======================================================================
+
+function proxyConfig() {
+  const apiKey = process.env.ZYTE_API_KEY;
+  if (!apiKey) throw new Error('ZYTE_API_KEY not set');
+  return {
+    protocol: 'http' as const,
+    host: PROXY_HOST,
+    port: PROXY_PORT,
+    auth: { username: apiKey, password: '' },
+  };
+}
+
+export async function fetchPageViaZyteBrowser(
+  url: string,
+): Promise<ZyteResult> {
   const started = Date.now();
-  const payload = await callZyte({
-    url,
-    browserHtml: true,
-    // `:not(:empty)` short-circuits instantly on server-rendered sites;
-    // on Akamai-challenged or client-hydrated sites it blocks until the
-    // real JSON-LD appears. `onError: 'return'` lets pages without any
-    // JSON-LD still return the rendered HTML instead of failing.
-    actions: [{
-      action: 'waitForSelector',
-      selector: { type: 'css', value: 'script[type="application/ld+json"]:not(:empty)' },
-      timeout: 10,
-      onError: 'return',
-    }],
-  });
-  if (!payload.browserHtml) throw new Error('Zyte response missing browserHtml');
-  return { html: payload.browserHtml, fetchDurationMs: Date.now() - started };
+  const headers: Record<string, string> = { 'Zyte-Browser-Html': 'true' };
+  if (process.env.ZYTE_GEOLOCATION) {
+    headers['Zyte-Geolocation'] = process.env.ZYTE_GEOLOCATION;
+  }
+
+  try {
+    const res = await axios.get<string>(url, {
+      headers,
+      proxy: proxyConfig(),
+      timeout: 90_000,
+      responseType: 'text',
+      // Surface Zyte's error body in the thrown message instead of
+      // axios's generic "Request failed with status code N".
+      validateStatus: () => true,
+    });
+    if (res.status < 200 || res.status >= 300) {
+      const body = typeof res.data === 'string' ? res.data.slice(0, 500) : '';
+      throw new Error(`Zyte ${res.status}: ${body}`);
+    }
+    return { html: res.data, fetchDurationMs: Date.now() - started };
+  } catch (err) {
+    if (err instanceof AxiosError) {
+      throw new Error(`Zyte request failed: ${err.message}`);
+    }
+    throw err;
+  }
 }

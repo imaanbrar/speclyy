@@ -8,6 +8,10 @@
   </head>
   <body>
     <main class="shell">
+      <nav class="nav">
+        <a href="/" class="nav-item active">Single</a>
+        <a href="/batch" class="nav-item">Batch</a>
+      </nav>
       <header>
         <h1>Speclyy scraper POC</h1>
         <p class="sub">Paste a product URL. We try vendor adapters first, then JSON-LD, then rendered fallbacks.</p>
@@ -24,6 +28,10 @@
         />
         <button id="extract-btn" type="submit">Extract</button>
       </form>
+      <label class="cache-toggle">
+        <input id="no-cache" type="checkbox" />
+        <span>Bypass cache</span>
+      </label>
 
       <section id="status" class="status" hidden></section>
 
