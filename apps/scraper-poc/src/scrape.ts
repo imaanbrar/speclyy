@@ -10,13 +10,13 @@
 //
 //   Layer 1b (paid, ~2–5s): Zyte httpResponseBody — proxy rotation
 //     without the browser. Fast; clears IP/TLS-fingerprint blocks
-//     (Wayfair, Delta, Rejuvenation). Fails on Akamai JS challenges
-//     and client-hydrated JSON-LD. Up to 3 anti-bot retries.
+//     (Wayfair, Delta, Rejuvenation). Fails on Akamai JS challenges.
+//     Up to 3 anti-bot retries.
 //
 //   Layer 1c (paid, ~10–30s): Zyte browserHtml — real headless Chrome +
-//     waitForSelector. Required for JS-challenge sites (Crate & Barrel,
-//     Kohler) and client-hydrated markup. Up to 3 anti-bot retries.
-//     If this fails, the whole scrape fails and the error is cached.
+//     waitForSelector. Final fallback when Layer 1b produces an all-null
+//     extraction. Up to 3 anti-bot retries. If this fails, the whole
+//     scrape fails and the error is cached.
 //
 // Layers 1b/1c only run if ZYTE_API_KEY is set and USE_ZYTE!=0.
 //
@@ -42,6 +42,7 @@ import { normaliseUrl, urlHash } from './url.ts';
 import { pruneHtml } from './prune-html.ts';
 import { detectAntiBot } from './anti-bot.ts';
 import { findProductInHtml } from './jsonld.ts';
+import { normaliseJsonLd } from './jsonld-normalize.ts';
 import { resolveBrandOverride } from './brand-override.ts';
 import { ADAPTERS } from './adapters/index.ts';
 import type { ExtractedProduct } from './schema.ts';
@@ -153,7 +154,7 @@ type ExtractHit =
       data: ExtractedProduct;
       trace: Record<string, string>;
     }
-  | { kind: 'jsonld'; data: ExtractedProduct; claude: ExtractResult }
+  | { kind: 'jsonld'; data: ExtractedProduct; claude: ExtractResult | null }
   | null;
 
 /**
@@ -183,14 +184,41 @@ async function runAdaptersAndJsonLd(
 
   const jsonLd = findProductInHtml(html);
   if (jsonLd) {
-    const result = await extractFromJsonLd(jsonLd);
-    if (!isAllNull(result.data)) {
+    // Deterministic pass first: handles the Schema.org standard shape
+    // variations (brand as string|object, image as string|array|{url},
+    // QuantitativeValue dimensions with unit codes) without spending a
+    // Claude call. ~0ms, free, predictable.
+    const normalised = normaliseJsonLd(jsonLd);
+    const hasCritical =
+      !!normalised.product_name &&
+      !!normalised.brand &&
+      !!normalised.image_url;
+    const useClaude = process.env.USE_CLAUDE_JSONLD !== '0';
+
+    // Skip Claude when: env disables it, OR the normalizer already has
+    // the three critical fields (product_name, brand, image_url). The
+    // collection/finishes gaps are tolerated — no standard field for
+    // them, and we accept partial data.
+    if (!useClaude || hasCritical) {
+      if (!isAllNull(normalised)) {
+        console.error(
+          `[scrape] jsonld normalised${useClaude ? ' (critical fields complete)' : ' (claude disabled)'}`,
+        );
+        return { kind: 'jsonld', data: normalised, claude: null };
+      }
       console.error(
-        `[scrape] jsonld hit — claude=${result.claudeDurationMs}ms model=${result.model}${result.fallbackUsed ? ' (fallback)' : ''}`,
+        '[scrape] jsonld found but normaliser all-null — falling through',
       );
-      return { kind: 'jsonld', data: result.data, claude: result };
+    } else {
+      const result = await extractFromJsonLd(jsonLd);
+      if (!isAllNull(result.data)) {
+        console.error(
+          `[scrape] jsonld hit — claude=${result.claudeDurationMs}ms model=${result.model}${result.fallbackUsed ? ' (fallback)' : ''}`,
+        );
+        return { kind: 'jsonld', data: result.data, claude: result };
+      }
+      console.error('[scrape] jsonld found but all-null — falling through');
     }
-    console.error('[scrape] jsonld found but all-null — falling through');
   }
 
   return null;
@@ -216,6 +244,7 @@ async function tryRenderedSource(
   fetcher: RenderedFetch,
   path: 'zyte+claude',
   fetchSource: 'zyte-http' | 'zyte-browser',
+  maxAntiBotAttempts: number,
 ): Promise<ScrapeResult | null> {
   // Fetch with anti-bot retry. Some CDNs (Akamai, Cloudflare) throw a
   // transient challenge/interstitial on the first hit but serve the real
@@ -223,7 +252,7 @@ async function tryRenderedSource(
   // the next one carries, or the edge routed us to a different POP.
   // Hard fetch errors (timeout/network/crash) still fail-fast; only the
   // "got HTML but it's an anti-bot page" case retries.
-  const MAX_ANTI_BOT_ATTEMPTS = 3;
+  const MAX_ANTI_BOT_ATTEMPTS = maxAntiBotAttempts;
   let assets: Awaited<ReturnType<RenderedFetch>> | null = null;
   let lastAntiBot: string | null = null;
   for (let attempt = 1; attempt <= MAX_ANTI_BOT_ATTEMPTS; attempt++) {
@@ -327,7 +356,9 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
           !product_name && 'product_name',
           !brand && 'brand',
           !image_url && 'image_url',
-        ].filter(Boolean).join(',');
+        ]
+          .filter(Boolean)
+          .join(',');
         console.error(
           `[scrape] plain+claude missing {${missing}} — escalating to rendered fetch`,
         );
@@ -341,7 +372,7 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
 
     if (!useZyte) {
       throw new Error(
-        'plain_failed_and_zyte_disabled: set ZYTE_API_KEY in .env.local to enable the rendered-fetch fallback',
+        'plain_failed_and_zyte_disabled: set ZYTE_API_KEY in .env.local to enable the Zyte fallback',
       );
     }
 
@@ -352,10 +383,15 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
       started,
       async () => {
         const z = await fetchPageViaZyteHttp(url);
-        return { html: z.html, screenshotBase64: null, fetchDurationMs: z.fetchDurationMs };
+        return {
+          html: z.html,
+          screenshotBase64: null,
+          fetchDurationMs: z.fetchDurationMs,
+        };
       },
       'zyte+claude',
       'zyte-http',
+      3,
     );
     if (httpResult) return httpResult;
 
@@ -366,13 +402,20 @@ export async function scrape(rawUrl: string): Promise<ScrapeResult> {
       started,
       async () => {
         const z = await fetchPageViaZyteBrowser(url);
-        return { html: z.html, screenshotBase64: null, fetchDurationMs: z.fetchDurationMs };
+        return {
+          html: z.html,
+          screenshotBase64: null,
+          fetchDurationMs: z.fetchDurationMs,
+        };
       },
       'zyte+claude',
       'zyte-browser',
+      3,
     );
     if (browserResult) return browserResult;
-    throw new Error('all_paths_exhausted: plain + zyte-http + zyte-browser all failed');
+    throw new Error(
+      'all_paths_exhausted: plain + zyte-http + zyte-browser all failed',
+    );
   } catch (err) {
     const durationMs = Date.now() - started;
     const message = err instanceof Error ? err.message : String(err);
@@ -462,7 +505,14 @@ async function finalize(
       `[brand-override] ${url} → "${data.brand}" → "${brandOverride}"`,
     );
   }
-  const entry = successEntry(url, hash, finalData, durationMs, path, fetchSource);
+  const entry = successEntry(
+    url,
+    hash,
+    finalData,
+    durationMs,
+    path,
+    fetchSource,
+  );
   await writeCache(entry);
   return {
     source: 'scrape',
