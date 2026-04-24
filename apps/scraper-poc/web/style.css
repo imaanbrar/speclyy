@@ -379,6 +379,16 @@ a {
   cursor: not-allowed;
 }
 
+.batch-actions .stop-btn {
+  border-color: var(--err);
+  background: transparent;
+  color: var(--err);
+}
+
+.batch-actions .stop-btn:hover {
+  background: color-mix(in oklab, var(--err) 10%, transparent);
+}
+
 .batch-results {
   margin-top: 24px;
   display: grid;
@@ -403,6 +413,11 @@ a {
 
 .batch-card.err {
   border-color: color-mix(in oklab, var(--err) 40%, var(--border));
+}
+
+.batch-card.stopped {
+  opacity: 0.5;
+  border-style: dashed;
 }
 
 .batch-card-header {

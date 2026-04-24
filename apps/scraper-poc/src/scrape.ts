@@ -8,7 +8,7 @@
 //     all non-null; partial data falls through. 4xx/5xx/timeout also
 //     falls through.
 //
-//   Layer 1b (paid): Zyte — mode picked by host. No cross-fallback.
+//   Layer 1b (paid): Zyte — mode picked by host.
 //     - crateandbarrel.* → Zyte browser (proxy endpoint, ~10–30s).
 //       Akamai JS challenges need a real browser; the HTTP endpoint
 //       and Zyte's datacenter proxy pool both get 403'd.
@@ -17,8 +17,12 @@
 //       (Wayfair, Delta, Rejuvenation). Faster than proxy mode for
 //       non-browser fetches — the API short-circuits the CONNECT
 //       tunnel round-trip.
-//     Up to 3 anti-bot retries per attempt. If Layer 1b fails for the
-//     chosen mode, the scrape fails and the error is cached.
+//       → If Zyte HTTP fails OR returns partial data (missing any of
+//         product_name / brand / image_url), escalate to Zyte browser
+//         as a last-resort render. Partial HTTP result is preserved
+//         and returned if the browser escalation also fails.
+//     Up to 3 retries per Zyte attempt (hard errors + anti-bot pages
+//     share the same counter).
 //
 // Layer 1b only runs if ZYTE_API_KEY is set and USE_ZYTE!=0.
 //
@@ -107,6 +111,41 @@ function isAllNull(data: Record<string, unknown>): boolean {
   return Object.values(data).every(
     (v) => v === null || (Array.isArray(v) && v.length === 0),
   );
+}
+
+/**
+ * Critical fields: product_name + brand + image_url. If any of these is
+ * missing, the result is considered "partial" and eligible for escalation
+ * to a heavier fetch tier. The rest (sku, dimensions, collection,
+ * finishes) are nice-to-have but not gating.
+ */
+function hasCriticalFields(data: ExtractedProduct | null): boolean {
+  if (!data) return false;
+  return !!data.product_name && !!data.brand && !!data.image_url;
+}
+
+/**
+ * HEAD-check a URL and return true on 2xx. Used to sanity-check image
+ * URLs that Claude produced — it occasionally hallucinates paths or picks
+ * stale CDN entries that 404. Short timeout: if the origin is slow to
+ * respond we treat the URL as suspect rather than blocking the scrape.
+ * Deterministic sources (adapter, raw JSON-LD) bypass this check — their
+ * URLs came straight from the page.
+ */
+async function verifyImageUrl(
+  url: string,
+  timeoutMs = 5_000,
+): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'follow',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -375,20 +414,6 @@ export async function scrape(
       try {
         const claude = await extract(initial.html, null);
         const { product_name, brand, image_url } = claude.data;
-        if (product_name && brand && image_url) {
-          console.error(
-            `[scrape] plain+claude — fetch=${initial.fetchDurationMs}ms claude=${claude.claudeDurationMs}ms model=${claude.model}${claude.fallbackUsed ? ' (fallback)' : ''}`,
-          );
-          return finalizeClaude(
-            url,
-            hash,
-            started,
-            claude,
-            'plain+claude',
-            initial.fetchDurationMs,
-            'plain',
-          );
-        }
         const missing = [
           !product_name && 'product_name',
           !brand && 'brand',
@@ -396,9 +421,33 @@ export async function scrape(
         ]
           .filter(Boolean)
           .join(',');
-        console.error(
-          `[scrape] plain+claude missing {${missing}} — escalating to rendered fetch`,
-        );
+        if (!missing && image_url) {
+          // Verify before short-circuiting — if Claude's image is broken
+          // we want to escalate to a rendered fetch rather than return a
+          // partial result via this path.
+          const imageOk = await verifyImageUrl(image_url);
+          if (imageOk) {
+            console.error(
+              `[scrape] plain+claude — fetch=${initial.fetchDurationMs}ms claude=${claude.claudeDurationMs}ms model=${claude.model}${claude.fallbackUsed ? ' (fallback)' : ''}`,
+            );
+            return finalizeClaude(
+              url,
+              hash,
+              started,
+              claude,
+              'plain+claude',
+              initial.fetchDurationMs,
+              'plain',
+            );
+          }
+          console.error(
+            `[scrape] plain+claude image URL broken (${image_url}) — escalating to rendered fetch`,
+          );
+        } else {
+          console.error(
+            `[scrape] plain+claude missing {${missing}} — escalating to rendered fetch`,
+          );
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(
@@ -451,8 +500,47 @@ export async function scrape(
       'zyte-http',
       3,
     );
-    if (httpResult) return httpResult;
-    throw new Error('all_paths_exhausted: plain + zyte-http failed');
+    if (httpResult && hasCriticalFields(httpResult.entry.extractedData)) {
+      return httpResult;
+    }
+
+    // Escalate to Zyte browser as a last resort. Slow (10–30s per attempt
+    // × 3 retries in the worst case) but it's the only way to render JS-
+    // heavy pages that Zyte HTTP can't resolve, AND it occasionally pulls
+    // fields the HTTP path missed when the site's JSON-LD is thin.
+    console.error(
+      httpResult
+        ? '[scrape] zyte-http returned partial data (missing critical fields) — escalating to zyte-browser'
+        : '[scrape] zyte-http failed — escalating to zyte-browser',
+    );
+    const browserFallback = await tryRenderedSource(
+      url,
+      hash,
+      started,
+      async () => {
+        const z = await fetchPageViaZyteBrowser(url);
+        return {
+          html: z.html,
+          screenshotBase64: null,
+          fetchDurationMs: z.fetchDurationMs,
+        };
+      },
+      'zyte+claude',
+      'zyte-browser',
+      3,
+    );
+    if (browserFallback) return browserFallback;
+    // Browser gave us nothing — fall back to the partial HTTP result if we
+    // had one rather than failing outright.
+    if (httpResult) {
+      console.error(
+        '[scrape] zyte-browser fallback failed — returning partial zyte-http result',
+      );
+      return httpResult;
+    }
+    throw new Error(
+      'all_paths_exhausted: plain + zyte-http + zyte-browser failed',
+    );
   } catch (err) {
     const durationMs = Date.now() - started;
     const message = err instanceof Error ? err.message : String(err);
@@ -533,7 +621,7 @@ async function finalize(
   // (e.g. kohler.ca) put the collection in the structured-data brand field and
   // every extractor picks it up wrong — this is the single chokepoint to fix.
   const brandOverride = resolveBrandOverride(url);
-  const finalData =
+  let finalData =
     brandOverride && data.brand !== brandOverride
       ? { ...data, brand: brandOverride }
       : data;
@@ -541,6 +629,21 @@ async function finalize(
     console.error(
       `[brand-override] ${url} → "${data.brand}" → "${brandOverride}"`,
     );
+  }
+  // Verify Claude-produced image URLs before committing. Adapter and raw
+  // JSON-LD paths pass claudeResult=null and skip this — their URLs are
+  // deterministic page data. When the URL is broken we null it out; the
+  // zyte-http → zyte-browser escalation uses `hasCriticalFields` on the
+  // returned entry, so a verified-broken image naturally triggers an
+  // escalation rather than returning a result with a dead <img>.
+  if (claudeResult !== null && finalData.image_url) {
+    const ok = await verifyImageUrl(finalData.image_url);
+    if (!ok) {
+      console.error(
+        `[image-verify] dropping broken Claude URL: ${finalData.image_url}`,
+      );
+      finalData = { ...finalData, image_url: null };
+    }
   }
   const entry = successEntry(
     url,

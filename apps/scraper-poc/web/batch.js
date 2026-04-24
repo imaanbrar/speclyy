@@ -14,6 +14,7 @@ const REQUEST_GAP_MS = 10_000
 const form          = document.getElementById('batch-form')
 const urlsInput     = document.getElementById('urls-input')
 const button        = document.getElementById('batch-btn')
+const stopButton    = document.getElementById('stop-btn')
 const noCacheInput  = document.getElementById('no-cache')
 const statusEl      = document.getElementById('batch-status')
 const resultsEl     = document.getElementById('batch-results')
@@ -31,10 +32,11 @@ function parseUrls(raw) {
   return urls
 }
 
-function setBusy(busy, total) {
-  button.disabled = busy
-  urlsInput.disabled = busy
-  button.textContent = busy ? `Extracting ${total}…` : 'Extract all'
+function setRunning(running) {
+  button.hidden = running
+  stopButton.hidden = !running
+  urlsInput.disabled = running
+  noCacheInput.disabled = running
 }
 
 function makePendingCard(url) {
@@ -132,11 +134,25 @@ function renderError(nodes, message) {
   nodes.meta.textContent = message
 }
 
-async function extractOne(url, noCache) {
+function renderStopped(nodes) {
+  nodes.card.classList.remove('pending')
+  nodes.card.classList.add('stopped')
+  nodes.pill.className = 'pill'
+  nodes.pill.textContent = 'stopped'
+  nodes.timing.textContent = ''
+  nodes.img.removeAttribute('src')
+  nodes.img.alt = 'stopped'
+  nodes.name.textContent = 'Stopped'
+  nodes.meta.className = 'batch-card-meta empty'
+  nodes.meta.textContent = 'cancelled'
+}
+
+async function extractOne(url, noCache, signal) {
   const res = await fetch('/api/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url, noCache }),
+    signal,
   })
   const body = await res.json().catch(() => ({ error: 'non-JSON server response' }))
   if (!res.ok) {
@@ -147,6 +163,14 @@ async function extractOne(url, noCache) {
   }
   return body
 }
+
+let stopRequested = false
+let currentAbort = null
+
+stopButton.addEventListener('click', () => {
+  stopRequested = true
+  if (currentAbort) currentAbort.abort()
+})
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault()
@@ -164,7 +188,9 @@ form.addEventListener('submit', async (e) => {
     nodesByUrl.set(url, nodes)
   }
 
-  setBusy(true, urls.length)
+  stopRequested = false
+  currentAbort = null
+  setRunning(true)
   const noCache = noCacheInput.checked
   const total = urls.length
   let done = 0
@@ -172,7 +198,10 @@ form.addEventListener('submit', async (e) => {
   let failed = 0
   let totalMs = 0
 
-  const renderStatus = (finished) => {
+  // Single source of truth for the status line. Live rate + avg are shown
+  // from the first completed request; before that only counters are useful.
+  // `inFlightSec` / `waitingSec` append phase-specific detail.
+  const renderStatus = ({ finished = false, inFlightSec = null, waitingSec = null } = {}) => {
     const rate = done === 0 ? 0 : Math.round((ok / done) * 100)
     const avgMs = done === 0 ? 0 : Math.round(totalMs / done)
     const label = finished ? 'done' : 'complete'
@@ -180,40 +209,75 @@ form.addEventListener('submit', async (e) => {
       `${done} / ${total} ${label}`,
       `${ok} ok`,
       `${failed} failed`,
-      `${rate}% success`,
     ]
-    if (finished) parts.push(`avg ${avgMs}ms`)
+    if (done > 0) parts.push(`${rate}% success`, `avg ${avgMs}ms`)
+    if (inFlightSec !== null) parts.push(`current ${inFlightSec}s`)
+    if (waitingSec !== null) parts.push(`next in ${waitingSec}s`)
     statusEl.textContent = parts.join(' · ')
   }
-  renderStatus(false)
+  renderStatus()
 
-  for (let i = 0; i < urls.length; i++) {
+  outer: for (let i = 0; i < urls.length; i++) {
     const url = urls[i]
     const nodes = nodesByUrl.get(url)
     const reqStart = Date.now()
+    const ctrl = new AbortController()
+    currentAbort = ctrl
+    // Tick the elapsed counter every second while this request is in flight.
+    renderStatus({ inFlightSec: 0 })
+    const ticker = setInterval(() => {
+      renderStatus({
+        inFlightSec: Math.round((Date.now() - reqStart) / 1000),
+      })
+    }, 1000)
+    let wasStopped = false
     try {
-      const response = await extractOne(url, noCache)
+      const response = await extractOne(url, noCache, ctrl.signal)
       renderSuccess(nodes, response)
       ok += 1
     } catch (err) {
-      renderError(nodes, err?.message ?? String(err))
-      failed += 1
+      if (stopRequested || err?.name === 'AbortError') {
+        wasStopped = true
+        renderStopped(nodes)
+      } else {
+        renderError(nodes, err?.message ?? String(err))
+        failed += 1
+      }
     } finally {
-      totalMs += Date.now() - reqStart
-      done += 1
-      renderStatus(done === total)
+      clearInterval(ticker)
+      currentAbort = null
+      if (!wasStopped) {
+        totalMs += Date.now() - reqStart
+        done += 1
+      }
+      renderStatus({ finished: done === total && !wasStopped })
+    }
+    if (wasStopped) {
+      // Mark any not-yet-started URLs as stopped so the grid reflects the
+      // user's intent — we never reached them.
+      for (let j = i + 1; j < urls.length; j++) {
+        renderStopped(nodesByUrl.get(urls[j]))
+      }
+      break outer
     }
     // Pace against Claude's per-minute token limit. Skip the gap after
-    // the last request — nothing to wait for.
+    // the last request — nothing to wait for. Check stopRequested each
+    // tick so the user can cancel without waiting the full 10s.
     if (i < urls.length - 1) {
       const gapSec = REQUEST_GAP_MS / 1000
       for (let remaining = gapSec; remaining > 0; remaining--) {
-        statusEl.textContent =
-          `${done} / ${total} complete · ${ok} ok · ${failed} failed · waiting ${remaining}s before next…`
+        if (stopRequested) {
+          for (let j = i + 1; j < urls.length; j++) {
+            renderStopped(nodesByUrl.get(urls[j]))
+          }
+          break outer
+        }
+        renderStatus({ waitingSec: remaining })
         await new Promise((r) => setTimeout(r, 1000))
       }
     }
   }
 
-  setBusy(false, urls.length)
+  renderStatus({ finished: true })
+  setRunning(false)
 })
