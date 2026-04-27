@@ -1,13 +1,27 @@
 import { Button, Pill } from '@speclyy/design-system'
 import { Plus } from '@speclyy/design-system/icons'
 import Link from 'next/link'
+import { createServerSupabase } from '@speclyy/auth/server'
 
 const projects = [
   { id: 'atherton',      name: 'Atherton Residence', location: 'Atherton, CA',    studio: 'Henley & Co.', groups: 8,  items: 147, tbd: 12, status: 'Active' as const },
   { id: 'laurel-canyon', name: 'Laurel Canyon',      location: 'Los Angeles, CA', studio: 'Private',      groups: 12, items: 284, tbd: 0,  status: 'Final' as const },
 ]
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  // First-render side effect: flip `has_visited_dashboard` on so the
+  // /welcome screen is shown exactly once. Idempotent thanks to the WHERE
+  // clause; subsequent visits are no-ops.
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    await supabase
+      .from('profiles')
+      .update({ has_visited_dashboard: true })
+      .eq('id', user.id)
+      .eq('has_visited_dashboard', false)
+  }
+
   return (
     <div>
       <div className="flex items-baseline justify-between mb-10">

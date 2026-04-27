@@ -77,7 +77,6 @@ Out of scope: nation-state attacks, physical access, supply-chain compromise of 
 | `STRIPE_SECRET_KEY` | `.env.local` | Vercel env (server-only) |
 | `STRIPE_WEBHOOK_SECRET` | `.env.local` | Vercel env (server-only) |
 | `INNGEST_SIGNING_KEY` | `.env.local` | Vercel env (server-only) |
-| `DATABASE_URL` | `.env.local` | Vercel env (server-only) |
 | `ADMIN_SECRET` | `.env.local` | Vercel env (server-only) |
 | `ANTHROPIC_API_KEY` | Fly secret | Fly secret |
 
@@ -112,7 +111,7 @@ The service-role key bypasses Postgres RLS entirely. It must only be used where 
 
 All other routes use the anon key with JWT — RLS is enforced automatically.
 
-The Drizzle client initialised with the service-role connection string (`DATABASE_URL`) must only be instantiated in Route Handler files, never in RSC or Server Action files where the anon/JWT client is correct.
+If a Drizzle client is ever wired up against the project's direct Postgres connection (currently not in use — see [ADR-0021](adr/0021-single-supabase-project.md)), it must only be instantiated in Route Handler files, never in RSC or Server Action files where the Supabase JWT client is correct.
 
 ---
 

@@ -1,7 +1,7 @@
 -- =============================================================================
--- Speclyy shared-auth DB — initial schema
--- Target project: speclyy-auth (Supabase)
--- ADR-0019 (multi-app architecture), ADR-0007 (auth data model)
+-- Speclyy DB — initial schema
+-- Target project: `speclyy` (Supabase) — single project per ADR-0021
+-- ADR-0007 (auth data model), ADR-0019 (organizations + members), ADR-0021 (single project)
 --
 -- Apply via: Supabase Dashboard → SQL Editor → paste this file → Run.
 -- Greenfield project: no existing data to preserve.

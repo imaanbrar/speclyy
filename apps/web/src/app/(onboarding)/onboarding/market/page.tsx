@@ -1,38 +1,61 @@
-import { ButtonLink, Logo } from '@speclyy/design-system'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { createServerSupabase } from '@speclyy/auth/server'
+import { OnboardingShell } from '../../_components/shell'
+import { MarketPicker } from './_components/market-picker'
+import { buildCityLabel } from './_lib/city-label'
 
-const markets = [
-  { id: 'la',      label: 'Los Angeles' },
-  { id: 'ny',      label: 'New York' },
-  { id: 'dallas',  label: 'Dallas' },
-  { id: 'calgary', label: 'Calgary' },
-]
+async function detectMarket(): Promise<string | null> {
+  const h = await headers()
+  // Vercel populates these on every prod request. Locally they're absent.
+  const cityRaw = h.get('x-vercel-ip-city')
+  if (!cityRaw) {
+    // Localhost dev fallback so we can iterate on the detected-card flow
+    // without deploying. Gated on NODE_ENV='development' so a missing
+    // header in prod (e.g. behind a misconfigured proxy) still returns
+    // null — never silently label every user "Calgary". The label format
+    // matches what Open-Meteo returns for Calgary so picked === detected
+    // string-comparison stays consistent in dev.
+    if (process.env.NODE_ENV === 'development') {
+      return buildCityLabel({ city: 'Calgary', region: 'Alberta', country: 'CA' })
+    }
+    return null
+  }
+  const city = decodeURIComponent(cityRaw.replace(/\+/g, ' '))
+  const region = h.get('x-vercel-ip-country-region') ?? null
+  const country = h.get('x-vercel-ip-country') ?? null
+  const label = buildCityLabel({ city, region, country })
+  return label.length > 0 ? label : null
+}
 
-export default function OnboardingMarketPage() {
+export default async function OnboardingMarketPage() {
+  const supabase = await createServerSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('market')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const detectedLabel = await detectMarket()
+  const initialMarket = profile?.market ?? ''
+
   return (
-    <main className="min-h-screen bg-app">
-      <div className="max-w-md mx-auto px-6 pt-16 pb-20">
-        <Logo href="/" />
-        <p className="eyebrow mt-12">Step 3 of 3</p>
-        <h1 className="h1 mt-3">Which market <span className="italic-serif">do you work in?</span></h1>
-        <p className="body-lg mt-4">We tune the Library to the vendors and showrooms in your area.</p>
-
-        <div className="mt-10 grid grid-cols-2 gap-3">
-          {markets.map(m => (
-            <button
-              key={m.id}
-              className="card card-hover text-left h4"
-              style={{ padding: '20px 20px' }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex justify-between mt-10">
-          <ButtonLink href="/onboarding/studio" variant="ghost">Back</ButtonLink>
-          <ButtonLink href="/projects" variant="primary">Finish setup</ButtonLink>
-        </div>
-      </div>
-    </main>
+    <OnboardingShell
+      step={3}
+      eyebrow="Your market"
+      title={
+        <>
+          Which market <span className="italic-serif">do you work in?</span>
+        </>
+      }
+      description="We tune the Library to your area. You can change this any time in Settings."
+    >
+      <MarketPicker detectedLabel={detectedLabel} initialMarket={initialMarket} />
+    </OnboardingShell>
   )
 }

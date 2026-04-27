@@ -30,9 +30,9 @@ Each screen includes: purpose, key elements, and which workflow it serves.
 **Skip behavior:** auto-creates a studio named `"{first_name} {last_name}"` with null size — the profile is never left without a studio.
 
 ### 2.3 Onboarding — Your Market
-**Purpose:** Determines which local supplier inventory is surfaced in search.
-**Elements:** "Which market do you work in?" prompt, 4 preset market cards (Los Angeles / New York / Dallas / Calgary), **"Somewhere else" card with free-text city/region input**, "Nominate your city →" link, Back + Continue buttons, progress indicator (3 of 4).
-**Storage:** `profiles.market` is free text — presets store canonical values (`los_angeles` etc.), "Somewhere else" stores the user's input verbatim.
+**Purpose:** Captures the designer's city for spec-sheet display and (when matched against curated coverage) for surfacing local supplier inventory in Library search. See [ADR-0020](architecture/adr/0020-onboarding-market-global-cities.md).
+**Elements:** "Where do you work?" prompt, **Detected** card (populated from Vercel IP geolocation headers — hidden if detection fails), **Search** card that expands into a debounced live-search input over the Open-Meteo geocoding API (proxied via `/api/onboarding/cities`), Back + Continue buttons, progress indicator (3 of 4). No preset cards, no "Somewhere else" affordance, no "Nominate your city" link — every city is in scope.
+**Storage:** `profiles.market` is free text in the format `"City, Region, Country"` (e.g. `"Toronto, Ontario, Canada"`). Identical shape from both Detected and Search paths.
 
 ### 2.4 Onboarding — Plan
 **Purpose:** Choose Free (default) or upgrade to Pro at onboarding time.

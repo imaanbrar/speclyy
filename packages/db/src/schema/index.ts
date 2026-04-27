@@ -1,8 +1,11 @@
 // Schema barrel. Re-export every table module here so Drizzle picks them up
 // when a caller does `drizzle(sql, { schema })`.
 //
-// Tables live in the shared auth Supabase project (see ADR-0019). Per-app
-// tables (projects, groups, items) will live in a separate package / DB.
+// All tables live in the single Supabase project per ADR-0021 (`speclyy`).
+// Today the four account-level tables (profiles, organizations,
+// organization_members, subscriptions) are mirrored here for typegen; runtime
+// reads/writes go through the Supabase client + RLS, not Drizzle. Future
+// app-specific tables (projects, groups, items) will be added here too.
 
 export * from './profiles'
 export * from './organizations'

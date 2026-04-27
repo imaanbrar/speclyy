@@ -76,6 +76,16 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     userId = null
   }
 
+  // API routes are self-authenticating: each route handler calls
+  // createServerSupabase() + getUser() and decides on its own (401/403/data).
+  // Never short-circuit them with HTML redirects — fetch() callers silently
+  // follow a 307 and never hit the actual route, which manifests as "the
+  // server never logs the request" + a cancelled request in the network tab
+  // when the redirect chain gets interrupted by the next keystroke. The
+  // session cookie was already refreshed above via getUser(), so the route
+  // handler reads a fresh cookie when it runs.
+  if (path.startsWith('/api/')) return response
+
   // Unauthenticated gate.
   if (!userId) {
     if (isPublic) return response
@@ -91,14 +101,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // bounced to /projects by the page itself if desired), but we skip the
   // onboarding DB read to keep these routes fast.
   if (isPublic) return response
-
-  // Escape hatch — see decidePostAuthRedirect for the rationale. When this
-  // flag is on we skip the onboarding gate entirely so the auth group can be
-  // tested before the onboarding group ships its Server Actions. Remove this
-  // branch when onboarding lands.
-  if (process.env.NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING === '1') {
-    return response
-  }
 
   // Onboarding gate — single typed read.
   let isOnboarded = false

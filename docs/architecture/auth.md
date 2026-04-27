@@ -1,24 +1,23 @@
 # Auth — Architecture
 
-How authentication works in Speclyy, end-to-end. For the *why* behind these choices, see [ADR-0005](adr/0005-auth-provider.md), [ADR-0006](adr/0006-session-strategy.md), [ADR-0007](adr/0007-auth-data-model.md), and [ADR-0019](adr/0019-multi-app-architecture.md).
+How authentication works in Speclyy, end-to-end. For the *why* behind these choices, see [ADR-0005](adr/0005-auth-provider.md), [ADR-0006](adr/0006-session-strategy.md), [ADR-0007](adr/0007-auth-data-model.md), [ADR-0019](adr/0019-multi-app-architecture.md), and [ADR-0021](adr/0021-single-supabase-project.md).
 
 ---
 
-## Project boundary (shared auth, per-app data)
+## Project boundary
 
-Speclyy is the first app; more will follow under `*.speclyy.com`. The data architecture is designed from day one so a second app is a wiring task, not a migration. See [ADR-0019](adr/0019-multi-app-architecture.md).
+A single Supabase project (`speclyy`) holds **all** Speclyy data — auth + account-level + future app-specific tables — per [ADR-0021](adr/0021-single-supabase-project.md). The earlier two-project split (shared-auth + per-app DB from ADR-0019) was reversed before any per-app tables shipped; only the project boundary changed, not the table set.
 
-**Shared auth project** (one Supabase project) owns account-level data used by every app:
+The project owns:
 
 - `auth.users` (Supabase-managed)
 - `public.profiles` — app-agnostic identity, 1:1 with `auth.users`
 - `public.organizations` — account-level entity with a `type` discriminator (`individual`, `studio`, `firm`, `team`, …)
 - `public.organization_members` — membership join, supports future teammate invites
 - `public.subscriptions` — per-user subscriptions with a jsonb `entitlements` column keyed by app
+- All future app-specific tables (projects, documents, app state) — they get real foreign keys to `auth.users.id` and `public.organizations.id` rather than opaque UUIDs.
 
-**Per-app databases** hold app-specific data (projects, documents, app state) and reference `user_id` / `organization_id` as opaque UUIDs. No cross-database foreign keys. Apps verify Supabase JWTs to establish `auth.uid()` and read membership/entitlements from the shared project.
-
-**Cookie domain.** Supabase session cookies are set on `.speclyy.com` so any subdomain app receives the session automatically. The leading dot is mandatory — without it the cookie is scoped to the exact host. Cookie attributes are controlled by `@supabase/ssr` in our app code (`cookieOptions: { domain: '.speclyy.com' }` env-gated to production, in [`packages/auth/src/server.ts`](../../packages/auth/src/server.ts) and [`middleware.ts`](../../packages/auth/src/middleware.ts)) — there is no longer a "cookie domain" field in the Supabase dashboard.
+**Cookie domain.** Supabase session cookies are set on `.speclyy.com` so any future subdomain app receives the session automatically. The leading dot is mandatory — without it the cookie is scoped to the exact host. Cookie attributes are controlled by `@supabase/ssr` in our app code (`cookieOptions: { domain: '.speclyy.com' }` env-gated to production, in [`packages/auth/src/server.ts`](../../packages/auth/src/server.ts) and [`middleware.ts`](../../packages/auth/src/middleware.ts)) — there is no longer a "cookie domain" field in the Supabase dashboard.
 
 **UI copy vs schema.** Speclyy's UI uses the word "Studio"; the schema calls it an `organization`. The onboarding studio step writes `type = 'studio'`; Skip writes `type = 'individual'`. Users can convert individual → studio later from Settings.
 
@@ -40,7 +39,7 @@ flowchart TB
     Cb["/auth/callback route"]
   end
 
-  subgraph Supabase["Shared Auth Project (Supabase)"]
+  subgraph Supabase["Supabase project (speclyy)"]
     Auth[Supabase Auth / GoTrue]
     DB[(Postgres<br/>auth.users<br/>public.profiles<br/>public.organizations<br/>public.organization_members<br/>public.subscriptions)]
   end
@@ -202,9 +201,9 @@ export const config = {
 
 ## Data model
 
-See [ADR-0019](adr/0019-multi-app-architecture.md) for rationale. All tables below live in the shared auth project — they are account-level and used by every app.
+See [ADR-0019](adr/0019-multi-app-architecture.md) and [ADR-0021](adr/0021-single-supabase-project.md) for rationale. All tables below live in the single `speclyy` Supabase project; future app-specific tables join them in the same project.
 
-> **Greenfield.** The shared auth Supabase project has no pre-existing schema; the DDL below is the **initial** schema, not an incremental migration against live data. Drizzle still records it as its first migration file, but there is no production data to consider.
+> **Greenfield.** The Supabase project has no pre-existing schema; the DDL below is the **initial** schema, not an incremental migration against live data. Drizzle still records it as its first migration file, but there is no production data to consider.
 
 ```sql
 -- auth.users is Supabase-managed. Never modify.
@@ -213,7 +212,7 @@ CREATE TABLE public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   first_name text,
   last_name text,
-  market text,  -- free text; canonical launch values produced by the UI
+  market text,  -- free text "City, Region, Country" from the global picker (ADR-0020)
   onboarding_completed_at timestamptz,
   is_onboarded boolean GENERATED ALWAYS AS (onboarding_completed_at IS NOT NULL) STORED,
   has_visited_dashboard boolean NOT NULL DEFAULT false,
@@ -393,8 +392,10 @@ Downstream tables (`projects`, `groups`, `items`, etc.) follow the same pattern,
 - [ADR-0005 — Auth provider: Supabase Auth](adr/0005-auth-provider.md)
 - [ADR-0006 — Session strategy: cookie SSR via `@supabase/ssr`](adr/0006-session-strategy.md)
 - [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md) (data-model section superseded)
-- [ADR-0016 — Onboarding data model revision: studios entity + free-text market](adr/0016-onboarding-data-model-revision.md) (table naming superseded by 0019; structural decisions preserved)
-- [ADR-0019 — Multi-app architecture: shared auth project + organizations entity](adr/0019-multi-app-architecture.md)
+- [ADR-0016 — Onboarding data model revision: studios entity + free-text market](adr/0016-onboarding-data-model-revision.md) (table naming superseded by 0019; market picker UX superseded by 0020; structural + free-text decisions preserved)
+- [ADR-0019 — Multi-app architecture: shared auth project + organizations entity](adr/0019-multi-app-architecture.md) (per-app DB boundary superseded by ADR-0021; rest current)
+- [ADR-0020 — Onboarding market: global city search](adr/0020-onboarding-market-global-cities.md)
+- [ADR-0021 — Single Supabase project for auth and app data](adr/0021-single-supabase-project.md)
 - [Supabase Auth with Next.js App Router](https://supabase.com/docs/guides/auth/server-side/nextjs)
 - [`screen-inventory.md`](../screen-inventory.md) §1–2 (auth + onboarding)
 - [`user-flows.md`](../user-flows.md) "Supporting Flow — First-time setup"

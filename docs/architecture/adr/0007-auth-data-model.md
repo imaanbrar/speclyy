@@ -1,7 +1,9 @@
 # ADR-0007: Auth data model and middleware gates
 
-- **Status:** Accepted (data-model section superseded by [ADR-0016](0016-onboarding-data-model-revision.md); middleware gate chain still current)
+- **Status:** Accepted (data-model section superseded by [ADR-0016](0016-onboarding-data-model-revision.md), [ADR-0019](0019-multi-app-architecture.md), and [ADR-0020](0020-onboarding-market-global-cities.md); middleware gate chain still current)
 - **Date:** 2026-04-20
+
+> **Note:** The `market` CHECK constraint shown below was dropped by [ADR-0016](0016-onboarding-data-model-revision.md) and replaced with free text; the picker UX was made global by [ADR-0020](0020-onboarding-market-global-cities.md). The `studio_name` text column was replaced by the `organizations` + `organization_members` model in [ADR-0016](0016-onboarding-data-model-revision.md) (renamed by [ADR-0019](0019-multi-app-architecture.md)). Schema below is preserved for historical reference only.
 
 ## Context
 

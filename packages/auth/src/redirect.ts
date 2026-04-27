@@ -36,14 +36,6 @@ export function sanitizeNext(raw: string | null | undefined): string {
  *   3. Not onboarded → `/onboarding/name`.
  *   4. Onboarded + valid `next` → `next`.
  *   5. Onboarded, no `next` → `/projects`.
- *
- * **Escape hatch.** When `NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING=1` the onboarding
- * check is skipped and we always return `next || '/projects'` for an
- * authenticated user. This exists so the auth group can be tested end-to-end
- * before the onboarding group ships its Server Actions — the onboarding stubs
- * in `apps/web/src/app/(onboarding)/` don't flip `is_onboarded`, so without
- * this flag a first-time user would be trapped on `/onboarding/name`.
- * **Remove the flag — and this block — when the onboarding group lands.**
  */
 export async function decidePostAuthRedirect(
   supabase: SupabaseClient,
@@ -51,10 +43,6 @@ export async function decidePostAuthRedirect(
 ): Promise<string> {
   const { data, error } = await supabase.auth.getUser()
   if (error || !data?.user) return '/sign-in?error=unknown'
-
-  if (process.env.NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING === '1') {
-    return next || '/projects'
-  }
 
   const { data: profile } = await supabase
     .from('profiles')

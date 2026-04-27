@@ -14,12 +14,12 @@ created: 2026-04-22
 
 ## Goal
 
-Stand up the **shared auth** Supabase project that will be reused by every `*.speclyy.com` app ([ADR-0019](../../architecture/adr/0019-multi-app-architecture.md)), configure Google OAuth + email OTP, set a 90-day refresh-token inactivity timeout, and wire the resulting secrets into local dev and Vercel. Nothing else in the auth group can ship without this.
+Stand up the single Supabase project (per [ADR-0021](../../architecture/adr/0021-single-supabase-project.md)) that holds auth + all app data, configure Google OAuth + email OTP, set a 90-day refresh-token inactivity timeout, and wire the resulting secrets into local dev and Vercel. Nothing else in the auth group can ship without this.
 
 ## Scope
 
 **In scope**
-- Create a new Supabase project named `speclyy-auth` (or equivalent; document the name in this task's PR).
+- Create a new Supabase project named `speclyy` (per ADR-0021 — the earlier two-project split from ADR-0019 was reversed before any per-app tables shipped).
 - Enable Google OAuth provider with production + local redirect URIs.
 - Enable email sign-in with OTP / magic link (same template covers sign-up and sign-in).
 - Set Auth → Sessions → Inactivity timeout = 90 days.
@@ -29,7 +29,6 @@ Stand up the **shared auth** Supabase project that will be reused by every `*.sp
 > **Cookie domain is not a Supabase dashboard setting.** The `@supabase/ssr` client controls cookie attributes from app code via `cookieOptions: { domain: '.speclyy.com' }` (env-gated to production). That wiring belongs to TASK-AUTH-03 (SSR client factories), not here.
 
 **Out of scope**
-- Creating the per-app Speclyy database (separate project; different task group).
 - Seeding any rows in `profiles` / `organizations` — the trigger in TASK-AUTH-02 handles that.
 - Stripe provisioning — billing group.
 

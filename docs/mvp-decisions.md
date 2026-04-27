@@ -23,7 +23,7 @@ MVP ships with just enough data to make the 5 must-win workflows work (e.g. Kohl
 **MVP inventory coverage:**
 - Plumbing: Delta, Brizo, Kohler
 - Paint: Sherwin-Williams, Benjamin Moore
-- Markets: Los Angeles, New York, Dallas, Calgary
+- Local-supplier seed cities (curated subset of `global_products.markets`): Los Angeles, New York, Dallas, Calgary. Designers can sign up from anywhere — onboarding picks any city worldwide via search (see [ADR-0020](architecture/adr/0020-onboarding-market-global-cities.md)).
 
 ---
 
@@ -86,7 +86,7 @@ Building solo initially, one additional dev joining as needed. Tech stack decisi
 After Google sign-in, new users go through a short setup before reaching the dashboard:
 1. Your name
 2. Studio name
-3. Market (Los Angeles / New York / Dallas / Calgary)
+3. Market (any city worldwide — IP-detected suggestion + global search; see [ADR-0020](architecture/adr/0020-onboarding-market-global-cities.md))
 4. Plan overview — "You're on the Free plan." Honest, no-pressure summary of what's included and what's gated, with a Free vs Pro comparison table and a "Compare plans" link. No upgrade prompt — CTA is just "Go to dashboard →".
 
 Then: dashboard with empty state + "Create your first project" prompt. A "Free plan" badge in the dashboard header with a "See what's included →" link gives ongoing transparency without being intrusive.

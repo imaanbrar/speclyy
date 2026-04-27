@@ -2,7 +2,7 @@
 
 **Goal.** Ship the complete authentication surface for Speclyy: shared-auth Supabase provisioning, auth-adjacent schema, SSR client factories, middleware route gates, the sign-in page (Google + email OTP), the OTP verify page, the `/auth/callback` route, and sign-out. Onboarding screens are a separate group (they depend on this one); billing is also separate.
 
-**Outcome.** A visitor can hit any route and be routed to the right place: public → render, unauthenticated → `/sign-in`, authenticated but not onboarded → `/onboarding/name`, authenticated + onboarded → app. Sessions survive silent refresh and are killed cleanly on sign-out. Per [ADR-0019](../../architecture/adr/0019-multi-app-architecture.md), every table we add here lives in the **shared auth project** so future `*.speclyy.com` apps reuse it as-is.
+**Outcome.** A visitor can hit any route and be routed to the right place: public → render, unauthenticated → `/sign-in`, authenticated but not onboarded → `/onboarding/name`, authenticated + onboarded → app. Sessions survive silent refresh and are killed cleanly on sign-out. Per [ADR-0021](../../architecture/adr/0021-single-supabase-project.md), every table lives in the single `speclyy` Supabase project; future `*.speclyy.com` apps reuse the same project for auth.
 
 ## Tasks
 
@@ -45,11 +45,12 @@
 - [ADR-0005 — Auth provider: Supabase Auth](../../architecture/adr/0005-auth-provider.md)
 - [ADR-0006 — Session strategy: cookie-based SSR via `@supabase/ssr`](../../architecture/adr/0006-session-strategy.md)
 - [ADR-0007 — Auth data model and middleware gates](../../architecture/adr/0007-auth-data-model.md) *(data-model section superseded by ADR-0019; gate chain still authoritative)*
-- [ADR-0019 — Multi-app architecture: shared auth project + organizations](../../architecture/adr/0019-multi-app-architecture.md)
+- [ADR-0019 — Multi-app architecture: shared auth project + organizations](../../architecture/adr/0019-multi-app-architecture.md) *(per-app DB boundary superseded by ADR-0021)*
+- [ADR-0021 — Single Supabase project for auth and app data](../../architecture/adr/0021-single-supabase-project.md)
 
 ## Cross-cutting notes for implementers
 
-- **Temporary onboarding-bypass flag** (`NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING=1`). When set, both `decidePostAuthRedirect` and `middleware.ts` skip the onboarding gate so an authenticated user lands directly on `/projects`. This exists only so the auth group can be tested end-to-end before the onboarding group ships its Server Actions — the onboarding stub pages in `apps/web/src/app/(onboarding)/` don't flip `profiles.onboarding_completed_at`. **The first onboarding task must delete this flag and the two `process.env.NEXT_PUBLIC_AUTH_BYPASS_ONBOARDING` branches in `packages/auth/src/redirect.ts` and `packages/auth/src/middleware.ts`.**
+- **Onboarding gate is live.** `decidePostAuthRedirect` and `middleware.ts` route unfinished users to `/onboarding/name` and finished users to `/projects` (or to `?next=`). The onboarding group's Server Actions flip `profiles.onboarding_completed_at` on plan-step submit (Free) or billing-success (Pro).
 - **Free is indefinite.** There is **no trial-expiry middleware gate** (superseding older ADR-0007 trial language). Paywall fires inside the PDF export Server Action only — out of scope for this group.
 - **Sign-in methods:** Google OAuth **and** email magic link / 6-digit OTP. Both routes use the same `/auth/callback`. (Older `mvp-decisions.md § 1` language about "Google only" is superseded by the onboarding plan in `implementation-plans/onboarding.md` which introduced email magic links; follow `architecture/auth.md`.)
 - **Cookie domain.** In prod, Supabase session cookies are configured on `.speclyy.com` so sibling apps on subdomains pick up the session automatically ([ADR-0019](../../architecture/adr/0019-multi-app-architecture.md)). Locally this stays on `localhost`. The cookie-domain attribute is set by `@supabase/ssr` in our app code (`cookieOptions.domain`, env-gated to production) — not via the Supabase dashboard.

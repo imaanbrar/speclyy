@@ -80,7 +80,7 @@ Scenario: Test env isolation
   }
   ```
   On CI prefer `next start` against a pre-built app so first-request compilation doesn't blow the per-test timeout.
-- **Test Supabase project.** Either stand up a new Supabase project `speclyy-auth-test` (preferred — isolated) or use Supabase local dev branches. Secrets go into GitHub Actions secrets, not into the repo.
+- **Test Supabase project.** Either stand up a new Supabase project `speclyy-test` (preferred — isolated) or use Supabase local dev branches. Secrets go into GitHub Actions secrets, not into the repo.
 - **Fixture skeletons** (implementations land in TASK-TEST-02+):
   - `seedUser({ email, onboarded }): Promise<{ userId, email }>`
   - `resetDb(): Promise<void>` — truncates test-only rows; MUST be a no-op in prod (assert env).

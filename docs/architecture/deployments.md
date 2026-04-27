@@ -166,8 +166,7 @@ Supabase does not support schema rollback. The strategy is:
 | `NEXT_PUBLIC_SUPABASE_URL` | All | — | Public |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | All | — | Public |
 | `SUPABASE_SECRET_KEY` | Production + Preview | — | Server-only |
-| `DATABASE_URL` | Production + Preview | — | Direct Postgres connection |
-| `DATABASE_URL_POOLED` | Production + Preview | — | PgBouncer |
+| `NEXT_PUBLIC_COOKIE_DOMAIN` | Production + Preview | — | `.speclyy.com` in prod, blank locally |
 | `STRIPE_SECRET_KEY` | Production + Preview | — | `sk_live_` prod, `sk_test_` preview |
 | `STRIPE_WEBHOOK_SECRET` | Production + Preview | — | Different secret per env |
 | `STRIPE_PRICE_ID_PRO_MONTHLY` | Production + Preview | — | $37/mo price ID; different per env |

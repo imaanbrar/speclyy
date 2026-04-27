@@ -66,7 +66,7 @@ Scenario: ON CONFLICT DO NOTHING behaves
   ALTER TABLE public.processed_webhook_events ENABLE ROW LEVEL SECURITY;
   -- No policies — service-role bypasses RLS; no user-facing access needed.
   ```
-- **Location.** Same schema package as TASK-AUTH-02 (shared-auth). Per [ADR-0019](../../architecture/adr/0019-multi-app-architecture.md): `subscriptions` is in the shared auth project, so this idempotency ledger belongs there too.
+- **Location.** Same schema package as TASK-AUTH-02. Per [ADR-0021](../../architecture/adr/0021-single-supabase-project.md): all tables live in the single `speclyy` Supabase project, so this idempotency ledger lands alongside `subscriptions` there.
 - **No cascading FKs.** The row is a bookkeeping artifact; it does not reference subscriptions or users.
 
 ## Review notes

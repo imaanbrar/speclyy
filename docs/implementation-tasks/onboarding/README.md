@@ -11,7 +11,7 @@
 | [TASK-ONB-01](TASK-ONB-01-onboarding-shell.md) | Onboarding layout, progress shell, defensive profile upsert | P0 | 🔜 ready | 2 | Auth group |
 | [TASK-ONB-02](TASK-ONB-02-step-1-name.md) | Step 1 · Name (first/last + "Signed in as") | P0 | 🔜 ready | 2 | TASK-ONB-01 |
 | [TASK-ONB-03](TASK-ONB-03-step-2-studio.md) | Step 2 · Studio (organization + size + Skip) | P0 | 🔜 ready | 3 | TASK-ONB-02 |
-| [TASK-ONB-04](TASK-ONB-04-step-3-market.md) | Step 3 · Market (presets + "Somewhere else") | P0 | 🔜 ready | 2 | TASK-ONB-03 |
+| [TASK-ONB-04](TASK-ONB-04-step-3-market.md) | Step 3 · Market (IP-detected city + global search) | P0 | 🔜 ready | 2 | TASK-ONB-03 |
 | [TASK-ONB-05](TASK-ONB-05-step-4-plan.md) | Step 4 · Plan (Free / Pro select + completion) | P0 | 🔜 ready | 3 | TASK-ONB-04, TASK-BILL-03 |
 | [TASK-ONB-06](TASK-ONB-06-free-welcome.md) | Free Welcome screen | P0 | 🔜 ready | 1 | TASK-ONB-05 |
 
@@ -29,8 +29,9 @@
 
 ## Architecture references
 
-- [ADR-0016 — Onboarding data model revision](../../architecture/adr/0016-onboarding-data-model-revision.md) (structural decisions; table naming superseded).
+- [ADR-0016 — Onboarding data model revision](../../architecture/adr/0016-onboarding-data-model-revision.md) (structural decisions; table naming superseded; market picker UX superseded).
 - [ADR-0019 — Multi-app architecture](../../architecture/adr/0019-multi-app-architecture.md) — `organizations.type` discriminator, UI copy "Studio" vs schema `organization`.
+- [ADR-0020 — Onboarding market: global city search](../../architecture/adr/0020-onboarding-market-global-cities.md) — TASK-ONB-04 picker design (IP detection + Open-Meteo).
 - [ADR-0007 — Auth data model](../../architecture/adr/0007-auth-data-model.md) — middleware gate semantics.
 
 ## Invariants

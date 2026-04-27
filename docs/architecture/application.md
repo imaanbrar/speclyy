@@ -254,14 +254,11 @@ middleware.ts
 ## Environment variables
 
 ```bash
-# Supabase
+# Supabase — single project (`speclyy`) per ADR-0021
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<anon key>            # safe to expose
-SUPABASE_SECRET_KEY=<service role key>         # server only, never client
-
-# Database (Drizzle — direct connection string)
-DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres
-DATABASE_URL_POOLED=postgresql://postgres:<password>@<pooler>:6543/postgres
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>     # safe to expose
+SUPABASE_SECRET_KEY=<secret key>                           # server only, never client
+NEXT_PUBLIC_COOKIE_DOMAIN=.speclyy.com                     # blank locally
 
 # Stripe
 STRIPE_SECRET_KEY=sk_live_...                        # server only

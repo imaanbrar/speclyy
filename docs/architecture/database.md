@@ -39,7 +39,7 @@ CREATE TABLE public.profiles (
   first_name              text,
   last_name               text,
   studio_name             text,
-  market                  text CHECK (market IN ('los_angeles','new_york','dallas','calgary')),
+  market                  text,                          -- free-text "City, Region, Country" (see ADR-0020)
   onboarding_completed_at timestamptz,
   is_onboarded            boolean GENERATED ALWAYS AS (onboarding_completed_at IS NOT NULL) STORED,
   created_at              timestamptz NOT NULL DEFAULT now(),
@@ -163,7 +163,8 @@ CREATE TABLE public.global_products (
   product_url  text,
   image_url    text,
   category     text,              -- 'plumbing', 'paint', 'tile', 'hardware', ...
-  markets      text[],            -- null = global; ['los_angeles','new_york'] = local only
+  markets      text[],            -- null = global; canonical city slugs we curate (e.g. ['los-angeles']) = local only.
+                                   -- Independent of profiles.market — onboarding stores free text per ADR-0020.
   status       text NOT NULL CHECK (status IN ('active','discontinued','pending_review'))
                DEFAULT 'active',
   created_at   timestamptz NOT NULL DEFAULT now(),
@@ -287,12 +288,16 @@ export function createSupabaseServerClient() {
   )
 }
 
-// lib/db.ts — internal, service-role, RLS bypassed
+// lib/db.ts — illustrative; not currently wired into the app runtime per ADR-0021.
+// Internal, service-role, RLS bypassed.
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
 
-const client = postgres(process.env.DATABASE_URL_POOLED!)
+// If/when this is reintroduced for a Route Handler / background job, the
+// connection string is the `speclyy` project's direct or pooled URL —
+// fetched from Settings → Database, not pinned in `.env.local`.
+const client = postgres(process.env.SPECLYY_DB_POOLED_URL!)
 export const db = drizzle(client, { schema })
 ```
 
@@ -302,7 +307,7 @@ export const db = drizzle(client, { schema })
 
 ## Migration workflow
 
-> **Greenfield today.** No Supabase project is provisioned yet and no production data exists. The first "migration" Drizzle generates *is* the initial schema — auth tables, subscriptions, `processed_webhook_events`, and the per-app tables all land together or in the first few migrations, without the usual "add column nullable, backfill, then NOT NULL" dance. Treat the workflow below as the steady-state pattern once we're live.
+> **Greenfield today.** The single `speclyy` Supabase project (per [ADR-0021](adr/0021-single-supabase-project.md)) is provisioned and holds the initial auth-adjacent tables (`profiles`, `organizations`, `organization_members`, `subscriptions`); no app-specific tables exist yet, and no production data. The first "migration" already lives at [`packages/db/migrations/0001_initial_schema.sql`](../../packages/db/migrations/0001_initial_schema.sql). Once Drizzle is wired up, follow-up migrations (incl. `processed_webhook_events` and app tables) land alongside it. Treat the workflow below as the steady-state pattern.
 
 ```bash
 # 1. Edit schema in lib/db/schema.ts
@@ -313,7 +318,9 @@ npx drizzle-kit generate
 # 4. Apply to local Supabase
 npx drizzle-kit migrate
 
-# 5. Apply to production (same command, DATABASE_URL pointing at prod)
+# 5. Apply to production (same command, with the prod connection string).
+#    Per ADR-0021 the connection string is *not* in app env — fetch it from
+#    the `speclyy` project's Settings → Database when running this.
 DATABASE_URL=$PROD_URL npx drizzle-kit migrate
 ```
 
@@ -398,8 +405,10 @@ const cached = await db
 
 ## Connection management
 
-- **Serverless (Next.js on Vercel):** use the pooled connection string (`DATABASE_URL_POOLED`) → goes through Supabase's Supavisor pooler in transaction mode. Each serverless invocation gets a pooled connection; no persistent connections.
-- **Long-running (scraper on Fly.io):** use the direct connection string (`DATABASE_URL`) → persistent connection, no pooler overhead.
+> Per [ADR-0021](adr/0021-single-supabase-project.md), runtime app code talks to Postgres only via the Supabase client + RLS — there is no `DATABASE_URL` env var in the app. The notes below apply if/when a direct-Postgres consumer (Drizzle, the scraper) is wired up against the same `speclyy` project.
+
+- **Serverless (Next.js on Vercel):** use the pooled connection string → goes through Supabase's Supavisor pooler in transaction mode. Each serverless invocation gets a pooled connection; no persistent connections.
+- **Long-running (scraper on Fly.io):** use the direct connection string → persistent connection, no pooler overhead.
 - **Local dev:** use the local Supabase instance connection string.
 
 ---
@@ -410,6 +419,7 @@ const cached = await db
 - [ADR-0004 — Postgres host: Supabase](adr/0004-postgres-host.md)
 - [ADR-0007 — Auth data model and middleware gates](adr/0007-auth-data-model.md)
 - [ADR-0008 — ORM: Drizzle](adr/0008-orm.md)
+- [ADR-0020 — Onboarding market: global city search](adr/0020-onboarding-market-global-cities.md)
 - [auth.md](auth.md) — `profiles` and `subscriptions` table details
 - [scraper/on-demand.md](scraper/on-demand.md) — `scrape_cache` usage in on-demand flow
 - [scraper/failure-tracking.md](scraper/failure-tracking.md) — `error_type`, `attempts` fields detail

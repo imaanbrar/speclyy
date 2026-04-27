@@ -6,15 +6,15 @@ End-to-end runbook for standing up Speclyy's infrastructure from scratch. Follow
 
 - GitHub → Vercel projects
 - Custom-domain DNS via GoDaddy
-- Supabase shared-auth project (URL config, providers, sessions, API keys)
+- Supabase project (URL config, providers, sessions, API keys)
 - Google Cloud OAuth client
 - Env-var wiring (Vercel + `.env.local`)
 
 **Status (as of this provisioning pass)**
 
-- ✅ `speclyy-auth` Supabase project is **provisioned and live** — handles all authentication for every `*.speclyy.com` app
-- 🟡 `speclyy-web` per-app Supabase project is **not yet provisioned** — separate task, see "Per-app database (future)" below
+- ✅ Single `speclyy` Supabase project (per [ADR-0021](../architecture/adr/0021-single-supabase-project.md)) is **provisioned and live** — holds auth + all app data. The two-project split from ADR-0019 was reversed before any per-app tables shipped; the empty per-app project has been deleted.
 - ✅ Vercel projects (`speclyy-marketing`, `speclyy-web`) created; domains `speclyy.com` and `app.speclyy.com` live via GoDaddy DNS
+- ✅ `@supabase/ssr` cookie-domain wiring landed in `packages/auth/src/{cookies,browser,server,middleware}.ts` (env-gated on `NEXT_PUBLIC_COOKIE_DOMAIN`); only the Vercel env-var entry (§5a) remains to make `Domain=.speclyy.com` show up on production cookies
 
 **Out of scope** (separate docs)
 
@@ -142,12 +142,12 @@ Used for the "Continue with Google" sign-in path. **Supabase brokers the OAuth f
 
 ## 4. Supabase project
 
-This is the **shared auth project** per [ADR-0019](../architecture/adr/0019-multi-app-architecture.md). App-specific databases are separate projects.
+A single Supabase project holds auth + all app data per [ADR-0021](../architecture/adr/0021-single-supabase-project.md). (The earlier two-project split from ADR-0019 was reversed before any per-app tables shipped.)
 
 1. Supabase dashboard → **New project**
-   - Name: `speclyy-auth`
+   - Name: `speclyy`
    - Region: closest to majority of users
-   - Save the DB password somewhere safe (needed for direct DB access)
+   - Save the DB password somewhere safe (needed for direct DB access — drizzle-kit migrations, ad-hoc scripts)
 2. Wait ~2 min for provisioning
 
 ### 4a. URL Configuration
@@ -207,15 +207,16 @@ If you only see the legacy section (`anon` + `service_role` JWTs starting `eyJ�
 
 ## 5. Env-var wiring
 
-Three Supabase values, two destinations (Vercel + local).
+Four values, two destinations (Vercel + local). All from the single `speclyy` Supabase project, plus the cookie-domain flag.
 
 | Env var | Source | Bundle? |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Settings → API → Project URL | client + server |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Settings → API → publishable key | client + server |
-| `SUPABASE_SECRET_KEY` | Settings → API → secret key (click reveal) | **server only** |
+| `NEXT_PUBLIC_SUPABASE_URL` | `speclyy` → Settings → API → Project URL | client + server |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `speclyy` → Settings → API → publishable key | client + server |
+| `SUPABASE_SECRET_KEY` | `speclyy` → Settings → API → secret key (click reveal) | **server only** |
+| `NEXT_PUBLIC_COOKIE_DOMAIN` | Static — `.speclyy.com` in Vercel, blank locally | client + server |
 
-The `NEXT_PUBLIC_` prefix is a Next.js convention: at build time, Next.js inlines `NEXT_PUBLIC_*` into the browser bundle and refuses to expose anything else. `SUPABASE_SECRET_KEY` has no prefix and is therefore physically excluded from client code (resolves to `undefined` if a Client Component tries to read it).
+The `NEXT_PUBLIC_` prefix is a Next.js convention: at build time, Next.js inlines `NEXT_PUBLIC_*` into the browser bundle and refuses to expose anything else. Vars without the prefix are physically excluded from client code (resolve to `undefined` if a Client Component tries to read them).
 
 ### 5a. Vercel
 
@@ -225,27 +226,26 @@ The `NEXT_PUBLIC_` prefix is a Next.js convention: at build time, Next.js inline
 - Check **Production** + **Preview** scopes
 - Leave **Development** unchecked (that's for `vercel dev`; we use `pnpm dev` + `.env.local`)
 
+**`NEXT_PUBLIC_COOKIE_DOMAIN`:** set to `.speclyy.com` (leading dot mandatory) in Production + Preview. This is what makes the `@supabase/ssr` clients emit `Domain=.speclyy.com` on session cookies so future `*.speclyy.com` apps see the same session. Locally we leave it blank — see §5b.
+
 `speclyy-marketing` does **not** need Supabase env vars — the marketing site doesn't authenticate.
 
 ### 5b. Local
 
-Copy [apps/web/.env.local.example](../../apps/web/.env.local.example) → `apps/web/.env.local` and paste the same three values. `.env.local` is gitignored.
+Copy [apps/web/.env.local.example](../../apps/web/.env.local.example) → `apps/web/.env.local` and paste the values. `.env.local` is gitignored.
+
+Leave `NEXT_PUBLIC_COOKIE_DOMAIN` blank locally — setting a `Domain` attribute on `localhost` either rejects the cookie or narrows it so `http://localhost:3000` can't read it back.
 
 ---
 
-### 5c. Per-app database (future)
+### 5c. Direct Postgres access (tooling only)
 
-The Supabase project provisioned above (`speclyy-auth`) only owns auth-adjacent tables (`profiles`, `organizations`, `organization_members`, `subscriptions`) — accessed via the Supabase client + RLS, no Drizzle needed.
+Runtime app code talks to Postgres exclusively through the Supabase client + RLS — there is **no** `DATABASE_URL` env var in the app. If you need direct SQL access for `drizzle-kit` migrations, ad-hoc scripts, or backups, grab the connection string on demand:
 
-App-specific tables (Speclyy projects, documents, etc.) live in a **separate Supabase project**, `speclyy-web`, that has not been provisioned yet. When it is:
-
-- Create a second Supabase project named `speclyy-web` (same region as `speclyy-auth` to minimise cross-project latency)
 - Settings → Database → Connection string:
-  - "Direct connection" (port 5432) → `DATABASE_URL` — for migrations / scripts
-  - "Connection pooling" → mode "Transaction" (port 6543) → `DATABASE_URL_POOLED` — for app runtime (Vercel serverless)
-- Add both to Vercel `speclyy-web` env (Production + Preview) and to local `.env.local`
-
-Until that project exists, leave `DATABASE_URL` and `DATABASE_URL_POOLED` blank in [apps/web/.env.local.example](../../apps/web/.env.local.example) — nothing in the auth group reads them. The provisioning task for the per-app DB is tracked separately and will append its own section here when it lands.
+  - "Direct connection" (port 5432) — for migrations / scripts
+  - "Connection pooling" → mode "Transaction" (port 6543) — pooled, useful from short-lived processes
+- Pass it to the tool that needs it (e.g. `DATABASE_URL=… npx drizzle-kit migrate`). Don't add it to Vercel env unless a runtime path actually needs it.
 
 ---
 
@@ -262,7 +262,7 @@ Plus production-side smoke tests:
 
 5. `https://app.speclyy.com` loads the web app
 6. `https://speclyy.com` loads the marketing site
-7. After sign-in on `app.speclyy.com`, the `sb-<ref>-auth-token` cookie has `HttpOnly`, `Secure`, `SameSite=Lax`. (`Domain=.speclyy.com` becomes set once the `@supabase/ssr` `cookieOptions` are wired in TASK-AUTH-03.)
+7. After sign-in on `app.speclyy.com`, the `sb-<ref>-auth-token` cookie has `HttpOnly`, `Secure`, `SameSite=Lax`, and `Domain=.speclyy.com` (the last one once `NEXT_PUBLIC_COOKIE_DOMAIN` is set in Vercel — §5a).
 
 ---
 
@@ -278,7 +278,8 @@ Plus production-side smoke tests:
 
 - [ADR-0005 — Auth provider: Supabase Auth](../architecture/adr/0005-auth-provider.md)
 - [ADR-0006 — Session strategy: cookie SSR](../architecture/adr/0006-session-strategy.md)
-- [ADR-0019 — Multi-app architecture](../architecture/adr/0019-multi-app-architecture.md)
+- [ADR-0019 — Multi-app architecture](../architecture/adr/0019-multi-app-architecture.md) (per-app DB superseded by ADR-0021)
+- [ADR-0021 — Single Supabase project](../architecture/adr/0021-single-supabase-project.md)
 - [auth.md](../architecture/auth.md) — runtime architecture
 - [deployments.md](../architecture/deployments.md) — env-var inventory, branch model
 - [TASK-AUTH-01](../implementation-tasks/auth/TASK-AUTH-01-provision-supabase.md) — acceptance criteria this doc satisfies
