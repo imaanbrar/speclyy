@@ -31,7 +31,7 @@ This prevents the common failure mode where half a team's PRs block on "E2E cove
 - Playwright project lives at `apps/web/tests/e2e/` (or `e2e/` at repo root — decide in TASK-TEST-01).
 - One spec file per feature-level concern, grouped by feature-task area: `auth/sign-in.spec.ts`, `auth/middleware.spec.ts`, etc.
 - Spec files reference the originating feature task(s) in a header comment, e.g. `// Covers TASK-AUTH-05, TASK-AUTH-06`.
-- A test Supabase project (shared with local dev or a dedicated `speclyy-auth-test`) is used; never hit prod.
+- A test Supabase project (shared with local dev or a dedicated `speclyy-test`) is used; never hit prod.
 - Seed / reset helpers live in `e2e/fixtures/` and are reused across suites.
 
 ## What belongs in manual QA (not E2E)

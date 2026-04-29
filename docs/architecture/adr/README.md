@@ -34,7 +34,9 @@ Statuses: **Proposed** · **Accepted** · **Superseded by ADR-XXXX** · **Deprec
 | [0013](0013-bulk-crawl.md) | Bulk crawl design | Accepted |
 | [0014](0014-log-store.md) | Log store — Axiom | Accepted |
 | [0015](0015-marketing-site.md) | Marketing site — Astro in monorepo, deployed on Vercel | Accepted |
-| [0016](0016-onboarding-data-model-revision.md) | Onboarding data model revision — studios entity + free-text market | Accepted (table naming superseded by [0019](0019-multi-app-architecture.md); structural decisions current) |
+| [0016](0016-onboarding-data-model-revision.md) | Onboarding data model revision — studios entity + free-text market | Accepted (table naming superseded by [0019](0019-multi-app-architecture.md); market picker UX superseded by [0020](0020-onboarding-market-global-cities.md); free-text storage + structural decisions current) |
 | [0017](0017-subscription-ownership.md) | Subscription ownership — per-user, not per-studio | Accepted |
 | [0018](0018-payment-surface.md) | Payment surface — embedded Stripe Elements | Accepted |
-| [0019](0019-multi-app-architecture.md) | Multi-app architecture — shared auth project + `organizations` entity | Accepted |
+| [0019](0019-multi-app-architecture.md) | Multi-app architecture — shared auth project + `organizations` entity | Accepted (per-app DB boundary superseded by [0021](0021-single-supabase-project.md); rest current) |
+| [0020](0020-onboarding-market-global-cities.md) | Onboarding market — global city search instead of curated launch markets | Accepted |
+| [0021](0021-single-supabase-project.md) | Single Supabase project for auth and app data | Accepted |

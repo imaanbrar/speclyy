@@ -209,8 +209,8 @@ Short version:
 
 **Response (treat as P0):**
 1. Immediately rotate the key in Supabase dashboard → Settings → API.
-2. Update Vercel env var: `SUPABASE_SERVICE_ROLE_KEY` → new value → redeploy.
-3. Update Fly secret: `fly secrets set SUPABASE_SERVICE_ROLE_KEY=<new>`.
+2. Update Vercel env var: `SUPABASE_SECRET_KEY` → new value → redeploy.
+3. Update Fly secret: `fly secrets set SUPABASE_SECRET_KEY=<new>`.
 4. Audit Axiom logs for anomalous DB writes in the window of compromise.
 5. Notify users if any data was accessed or modified by the attacker.
 

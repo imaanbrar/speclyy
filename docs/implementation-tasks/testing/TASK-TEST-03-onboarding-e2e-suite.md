@@ -31,9 +31,11 @@ Once the Onboarding group is merged, cover the full 4-step Free path and the Ski
   - Skip path: `type='individual'`, name = `"{first} {last}"`, size `NULL`.
   - Revisit save-after-skip converts the individual row in place (no second org).
 - `step-3-market.spec.ts`
-  - Preset choice persists the snake_case value.
-  - "Somewhere else" persists verbatim, trimmed.
-  - Revisit re-selects the right card (preset vs free text).
+  - Detected card (mocked Vercel headers) pre-selects and persists `"City, Region, Country"`.
+  - Search card: typing ≥2 chars hits `/api/onboarding/cities`, picking a result fills the hidden field; submit persists verbatim, trimmed.
+  - No-detection state: Detected card is hidden, search is the only affordance.
+  - Revisit shows the previously-stored value.
+  - See [ADR-0020](../../architecture/adr/0020-onboarding-market-global-cities.md).
 - `step-4-plan-free.spec.ts`
   - Default-selected Free; "Continue with Free" sets `onboarding_completed_at`.
   - Bounces to `/welcome`.

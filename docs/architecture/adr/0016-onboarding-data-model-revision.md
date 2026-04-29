@@ -1,16 +1,18 @@
 # ADR-0016: Onboarding data model revision — studios entity + free-text market
 
-- **Status:** Accepted — table renamed from `studios` to `organizations` by [ADR-0019](0019-multi-app-architecture.md); structural decisions (first-class entity, no `UNIQUE(name)`, Skip auto-creates, profile-has-org invariant) remain current.
+- **Status:** Accepted — table renamed from `studios` to `organizations` by [ADR-0019](0019-multi-app-architecture.md); the curated-launch-markets / "Somewhere else" picker UX is replaced by the global city search in [ADR-0020](0020-onboarding-market-global-cities.md). Structural decisions (first-class entity, no `UNIQUE(name)`, Skip auto-creates, profile-has-org invariant) and the free-text storage of `profiles.market` remain current.
 - **Date:** 2026-04-22
 - **Supersedes:** the data-model section of [ADR-0007](0007-auth-data-model.md). The middleware gate chain from ADR-0007 remains current.
-- **Partially superseded by:** [ADR-0019](0019-multi-app-architecture.md) — `studios` is now `organizations` with a `type` discriminator, and membership lives in `organization_members` rather than `profiles.studio_id`.
+- **Partially superseded by:**
+  - [ADR-0019](0019-multi-app-architecture.md) — `studios` is now `organizations` with a `type` discriminator, and membership lives in `organization_members` rather than `profiles.studio_id`.
+  - [ADR-0020](0020-onboarding-market-global-cities.md) — the four preset launch markets and the "Somewhere else" / "Nominate your city" affordances are replaced by an IP-detected + globally-searchable city picker. Free-text storage of `profiles.market` is preserved.
 
 ## Context
 
 [ADR-0007](0007-auth-data-model.md) stored studio as a `profiles.studio_name` string and constrained `profiles.market` with a four-value CHECK. The onboarding & billing design introduces two requirements that break both choices:
 
 1. **Teammate invites** are a near-term roadmap item — multiple profiles must belong to one studio. A per-profile `studio_name` string cannot express that.
-2. **Market "Somewhere else"** — the onboarding market step now offers a free-text city/region field alongside the four launch markets. The `CHECK (market IN (…))` constraint blocks that.
+2. **Market "Somewhere else"** — the onboarding market step now offers a free-text city/region field alongside the four launch markets. The `CHECK (market IN (…))` constraint blocks that. *(Subsequently — see [ADR-0020](0020-onboarding-market-global-cities.md) — the preset cards were dropped entirely in favour of a global city search; the free-text column accommodates that without further schema change.)*
 
 The studio step also now collects **studio size** (Just me / 2–5 / 6–10 / 11+), which belongs on the studio, not the profile.
 

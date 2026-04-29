@@ -1,8 +1,9 @@
 # ADR-0019: Multi-app architecture — shared auth project + `organizations` entity
 
-- **Status:** Accepted
+- **Status:** Accepted (per-app DB boundary superseded by [ADR-0021](0021-single-supabase-project.md); `organizations` entity, members table, entitlements column, and cookie-domain story still current)
 - **Date:** 2026-04-22
 - **Supersedes:** the `studios` table naming in [ADR-0016](0016-onboarding-data-model-revision.md). Structural decisions from 0016 (first-class entity, no `UNIQUE(name)`, Skip auto-creates, invariant "every profile has an org") still hold — the table is just renamed and gains a `type` discriminator.
+- **Partially superseded by:** [ADR-0021](0021-single-supabase-project.md) — the "each app gets its own Postgres database" decision is reversed. All data (auth + app) lives in **one** Supabase project (renamed `speclyy`). The rest of this ADR — `organizations.type`, `organization_members`, `subscriptions.entitlements`, cookie-domain on `.speclyy.com` — still applies.
 
 ## Context
 
@@ -17,15 +18,18 @@ Naming `studios` today bakes a single-app assumption into the schema. Renaming l
 
 ### Project boundary
 
-One Supabase project is the **shared auth project** and owns:
+> **Superseded by [ADR-0021](0021-single-supabase-project.md).** The original decision was a shared auth project + per-app DB. ADR-0021 collapses both into a single Supabase project (`speclyy`) holding `auth.users`, the four account-level tables below, **and** all future app-specific tables. The list of account-level tables this ADR introduced still stands; only the project boundary changes.
+
+The single Supabase project owns:
 
 - `auth.users` (Supabase-managed)
 - `public.profiles` — 1:1 with `auth.users`, app-agnostic identity
 - `public.organizations` — account-level entity, typed per app
 - `public.organization_members` — membership join table (supports future teammate invites)
 - `public.subscriptions` — per-user subscriptions with app/plan entitlements
+- All future app-specific tables (projects, documents, app state) — see ADR-0021.
 
-Each app gets its **own** Postgres database (may be its own Supabase project or an external DB) for app-specific data (projects, documents, app state). App databases reference `user_id` and `organization_id` as opaque UUIDs — no cross-database FKs. Apps verify Supabase JWTs on requests and trust `auth.uid()` / membership claims.
+If a second app under `*.speclyy.com` ships, it shares the same auth via the cookie-domain story below; whether its data lives in this project or a separate one is a decision for that day.
 
 ### Rename `studios` → `organizations` with a `type` discriminator
 
@@ -78,7 +82,7 @@ Single-app and bundle subscriptions look identical to apps querying their entitl
 
 ### Cookie domain
 
-Supabase session cookies are set on `.speclyy.com` so any subdomain app (`app.speclyy.com`, future `<app2>.speclyy.com`) receives the session. This is a Supabase dashboard setting (Auth → URL configuration → cookie domain) — applied when the production apex domain is wired up, not required in local dev.
+Supabase session cookies are set on `.speclyy.com` so any subdomain app (`app.speclyy.com`, future `<app2>.speclyy.com`) receives the session. The cookie domain is set by `@supabase/ssr` in our app code (`cookieOptions.domain`, env-gated to production) — not via the Supabase dashboard, which no longer exposes a cookie-domain field. Local dev stays on `localhost` (no domain attribute needed).
 
 ## Rationale
 
@@ -90,7 +94,7 @@ Supabase session cookies are set on `.speclyy.com` so any subdomain app (`app.sp
 
 **One shared Supabase project for auth/org/billing.** Split-project setups require SSO bridging between projects (non-trivial) or custom JWT verification. Single project = cookie works everywhere on `.speclyy.com`, one `auth.users` is canonical, RLS expressions stay simple.
 
-**App DBs per app.** Keeps each app's data domain independent (schema evolution, backup/restore blast radius, RLS complexity). Cross-app reporting (if ever needed) is a data-warehouse concern, not a live-query concern.
+**App DBs per app.** ~~Keeps each app's data domain independent (schema evolution, backup/restore blast radius, RLS complexity). Cross-app reporting (if ever needed) is a data-warehouse concern, not a live-query concern.~~ Reversed by [ADR-0021](0021-single-supabase-project.md): no per-app tables exist yet, no second app is on the roadmap, and the split was costing FK integrity + env-var surface. Collapsed to one project.
 
 **`entitlements` jsonb, not a join table.** A subscription row's entitlements are read on nearly every gated action. A jsonb column is read with the subscription in one fetch; a normalized `subscription_entitlements` table adds a join for no queryable benefit at current scale. Revisit if entitlement queries need to filter/aggregate across subscriptions.
 

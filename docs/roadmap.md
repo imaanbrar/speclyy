@@ -96,7 +96,7 @@ From `docs/vision.md`. Don't plan these yet — validate the earlier phases firs
 | 🔲 **Canva export** | Export a spec sheet or moodboard as a Canva-compatible format for client-ready presentation packs. Requires Canva API integration. |
 | 🔲 **Procurement + ordering** | Generate purchase orders, track order status, connect to vendor portals. Major scope increase — different product surface. |
 | 🔲 **Community / marketplace** | Designers share spec sheet templates, room packages, curated product collections. Requires moderation, reputation, trust layer. |
-| 🔲 **Markets expansion** | `profiles.market` currently supports `los_angeles`, `new_york`, `dallas`, `calgary`. Expand market coverage with local supplier data. |
+| 🔲 **Local-supplier coverage expansion** | Onboarding accepts any city worldwide (see [ADR-0020](architecture/adr/0020-onboarding-market-global-cities.md)) — but curated *local-supplier* inventory in `global_products.markets` is initially seeded for Los Angeles, New York, Dallas, Calgary only. Expand the seeded city list with local supplier data so designers in more cities see local-only items in search. |
 
 ---
 

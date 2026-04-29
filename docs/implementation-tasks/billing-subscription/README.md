@@ -16,8 +16,9 @@
 | [TASK-BILL-06](TASK-BILL-06-pro-success-screen.md) | Pro Success screen + completion | P0 | 🔜 ready | 2 | TASK-BILL-04, TASK-BILL-05 |
 | [TASK-BILL-07](TASK-BILL-07-customer-portal.md) | Customer portal Server Action + entry | P1 | 🔜 ready | 2 | TASK-BILL-01 |
 | [TASK-BILL-08](TASK-BILL-08-paywall-gate-and-modal.md) | Export paywall — `isPro` helper + blurred-preview modal | P0 | 🔜 ready | 3 | TASK-BILL-05 |
+| [TASK-BILL-09](TASK-BILL-09-cad-pricing-expansion.md) | CAD pricing expansion — multi-currency Pro plan | P1 | 📋 planned | 5 | TASK-BILL-01, TASK-BILL-03, TASK-BILL-04, TASK-ONB-05, TASK-AUTH-02 |
 
-**Total estimate:** 21 points.
+**Total estimate:** 26 points (21 for US-only MVP + 5 for CAD expansion).
 
 **E2E coverage** ships separately in [TASK-TEST-04 — Billing E2E suite](../testing/TASK-TEST-04-billing-e2e-suite.md).
 

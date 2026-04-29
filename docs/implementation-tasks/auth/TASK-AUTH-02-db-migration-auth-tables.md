@@ -2,7 +2,7 @@
 id: TASK-AUTH-02
 title: Initial DB schema — profiles, organizations, members, subscriptions, trigger, RLS
 group: auth
-status: ready
+status: done
 estimate: 3
 dependencies: [TASK-AUTH-01]
 related_screens: []
@@ -14,7 +14,7 @@ created: 2026-04-22
 
 ## Goal
 
-Create the auth-adjacent schema in the shared auth project: `profiles`, `organizations`, `organization_members`, `subscriptions`, the `handle_new_user()` trigger that back-fills `profiles` on `auth.users` insert, and the baseline RLS policies that make `auth.uid()` the *only* identity the database trusts. This is the structural foundation every later task builds on.
+Create the auth-adjacent schema in the single `speclyy` Supabase project (per [ADR-0021](../../architecture/adr/0021-single-supabase-project.md)): `profiles`, `organizations`, `organization_members`, `subscriptions`, the `handle_new_user()` trigger that back-fills `profiles` on `auth.users` insert, and the baseline RLS policies that make `auth.uid()` the *only* identity the database trusts. This is the structural foundation every later task builds on.
 
 > **Greenfield DB.** The Supabase project provisioned in TASK-AUTH-01 has no pre-existing schema — this task lays down the initial DDL as the first migration Drizzle will record. There is **no production data to migrate from**; later schema changes will arrive as additive migrations, but tasks currently in this tracker (auth, onboarding, billing) all fold into this initial schema where possible.
 
@@ -101,7 +101,7 @@ Scenario: Unique constraints hold
 - **`is_onboarded` is generated.** Reviewers sometimes try to "simplify" this into an app-side computed value. The invariant is that the column is GENERATED STORED so the middleware query in TASK-AUTH-04 can filter on it cheaply and correctly.
 - **`stripe_*` uniques.** Both `stripe_customer_id` and `stripe_subscription_id` must be UNIQUE. Webhook idempotency depends on it.
 - **Down migration.** If the ORM supports it, write a working `down`. For prod we never run it, but local devs reset constantly.
-- **No cross-DB FKs.** Per ADR-0019, per-app tables reference `user_id` / `organization_id` as opaque UUIDs — this schema does *not* add FKs from per-app DBs. Scope check only.
+- **Single project.** Per [ADR-0021](../../architecture/adr/0021-single-supabase-project.md), all tables live in the same Supabase project — future app tables get **real** foreign keys to `auth.users.id` / `public.organizations.id` (not opaque UUIDs as the original ADR-0019 framing suggested).
 
 ## Test plan
 

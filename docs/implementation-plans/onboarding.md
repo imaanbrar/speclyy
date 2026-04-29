@@ -22,7 +22,7 @@ Step details from the design:
 |---|---|---|---|---|
 | 1 | Name | `first_name`, `last_name` (both required) | Shows "Signed in as {email}" | Continue |
 | 2 | Studio | `studio_name`, **`studio_size`** (Just me / 2–5 / 6–10 / 11+) | Back | Continue |
-| 3 | Market | 4 preset cards (Los Angeles / New York / Dallas / Calgary) **+ "Somewhere else" free-text city/region** + "Nominate your city →" link | Back | Continue |
+| 3 | Market | Detected city card (from Vercel IP headers) + global city search (Open-Meteo proxy at `/api/onboarding/cities`) — see [ADR-0020](../architecture/adr/0020-onboarding-market-global-cities.md) | Back | Continue |
 | 4 | Plan | Free card (selected by default) + Pro card ($29/mo annual, $37 monthly) | Back | **Continue with Free** → Free Welcome screen, or select Pro → Checkout |
 
 **Post-step 4:**
@@ -32,10 +32,11 @@ Step details from the design:
 ### Differences from docs to resolve
 
 1. **Studio size** field — not in [auth.md](../architecture/auth.md) schema. Add to `studios` table.
-2. **"Somewhere else" market** — current `profiles.market` CHECK constraint only allows four values. Either drop the CHECK and store free text, or add `market_custom text` for the free-entry case.
+2. **Market field** — `profiles.market` CHECK constraint is dropped; column is unconstrained free text storing `"City, Region, Country"`. Onboarding picker uses IP-detected city + Open-Meteo global search per [ADR-0020](../architecture/adr/0020-onboarding-market-global-cities.md). No preset cards, no "Somewhere else" or "Nominate your city" affordances.
 3. **"Skip" on studio step** — design does **not** show a Skip button, just Back/Continue. You mentioned Skip earlier — flag to confirm. If kept, add a text-link "Skip for now" next to Back.
 4. **Export paywall behavior** — design allows Free users to download a **blurred/watermarked PDF** (copy: *"it'll export with a light blur watermark"*), whereas [billing.md](../architecture/billing.md) says "blurred preview shown" (no download). Design supersedes; plan updates billing.md accordingly.
 5. **Market CTA copy** — design shows "Open Speclyy" on step 3, but with a plan step after, it should say "Continue".
+6. **Market preset cards** — design shows four preset launch markets (LA / NY / Dallas / Calgary) + "Somewhere else" + "Nominate your city". All replaced by a global IP-detected + searchable picker per [ADR-0020](../architecture/adr/0020-onboarding-market-global-cities.md).
 
 ---
 
@@ -55,9 +56,9 @@ CREATE TABLE public.studios (
 ALTER TABLE public.profiles
   DROP COLUMN studio_name,
   ADD  COLUMN studio_id uuid REFERENCES public.studios(id) ON DELETE SET NULL,
-  DROP CONSTRAINT profiles_market_check,
-  ADD  COLUMN market_custom text;  -- populated when market = 'other'
--- Keep `market` column; extend CHECK to allow 'other'.
+  DROP CONSTRAINT profiles_market_check;
+-- `market` is now unconstrained free text storing "City, Region, Country" (see ADR-0020).
+-- No `market_custom` column — single column suffices since every value is free text.
 ```
 
 **Subscription ownership:** recommend moving `subscriptions.user_id` → `subscriptions.studio_id` so a Pro plan covers the whole studio. Decide before issue #15; defer only if flagged as tech debt.
@@ -85,7 +86,7 @@ ALTER TABLE public.profiles
 9. **Onboarding layout + shell** — shared logo/footer, progress component (4 dots, label "Step X of 4"), defensive `profiles` upsert on mount.
 10. **Step 1 · Name** ([onboarding/name/page.tsx](../../apps/web/src/app/(onboarding)/onboarding/name/page.tsx)) — replace single field with `first_name` + `last_name`; show "Signed in as {email}" line. Server Action persists → `/onboarding/studio`.
 11. **Step 2 · Studio** ([onboarding/studio/page.tsx](../../apps/web/src/app/(onboarding)/onboarding/studio/page.tsx)) — add studio name + studio-size selector (4 options). Server Action upserts `studios` and links `profiles.studio_id`. Confirm whether "Skip" should exist (design doesn't show it).
-12. **Step 3 · Market** ([onboarding/market/page.tsx](../../apps/web/src/app/(onboarding)/onboarding/market/page.tsx)) — fix market enum values (`los_angeles|new_york|dallas|calgary`), add "Somewhere else" card with free-text input → stored as `market='other'` + `market_custom`. Add "Nominate your city" copy/link (no-op for v1 or mailto). CTA label **Continue** (not "Open Speclyy"). → `/onboarding/plan`.
+12. **Step 3 · Market** ([onboarding/market/page.tsx](../../apps/web/src/app/(onboarding)/onboarding/market/page.tsx)) — IP-detected city card (Vercel headers) + global Open-Meteo search via [`/api/onboarding/cities`](../../apps/web/src/app/api/onboarding/cities/route.ts). Stores `"City, Region, Country"` in `profiles.market` (free text). CTA label **Continue**. → `/onboarding/plan`. See [ADR-0020](../architecture/adr/0020-onboarding-market-global-cities.md).
 13. **Step 4 · Plan** (NEW) — Free + Pro cards per [flow6 `F6_PlanStep`](../../../../Downloads/Speclyy%20Design%20System%20(1)/flows/flow6-billing.jsx). "Continue with Free" → `completeOnboarding` (sets `onboarding_completed_at`) → Free Welcome screen. Selecting Pro → `createCheckoutSession('annual'|'monthly')` → Stripe.
 
 ### Billing

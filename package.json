@@ -3,17 +3,29 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev:web":        "pnpm --filter @speclyy/web dev",
-    "dev:marketing":  "pnpm --filter @speclyy/marketing dev",
-    "dev:design":     "pnpm --filter @speclyy/design dev",
-    "build:web":      "pnpm --filter @speclyy/web build",
-    "build:marketing":"pnpm --filter @speclyy/marketing build",
-    "build:design":   "pnpm --filter @speclyy/design build",
-    "build":          "pnpm --filter './apps/*' build",
-    "scrape":         "pnpm --filter @speclyy/scraper-poc scrape"
+    "dev:web": "pnpm --filter @speclyy/web dev",
+    "dev:marketing": "pnpm --filter @speclyy/marketing dev",
+    "dev:design": "pnpm --filter @speclyy/design dev",
+    "build:web": "pnpm --filter @speclyy/web build",
+    "build:marketing": "pnpm --filter @speclyy/marketing build",
+    "build:design": "pnpm --filter @speclyy/design build",
+    "build": "pnpm --filter './apps/*' build",
+    "scrape": "pnpm --filter @speclyy/scraper-poc scrape",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "1.51.1"
   }
 }

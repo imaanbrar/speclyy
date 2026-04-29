@@ -10,7 +10,7 @@ Tasks replace the earlier `user-stories/` + `implementation-plans/` split. The n
 
 | # | Group | Tasks | Status |
 |---|-------|-------|--------|
-| 1 | [Auth](auth/) | 8 | 🔜 ready |
+| 1 | [Auth](auth/) | 8 | ✅ done |
 | 2 | [Onboarding](onboarding/) | 6 | 🔜 ready |
 | 3 | [Billing & Subscription](billing-subscription/) | 8 | 🔜 ready |
 | 4 | [Project Management](project-management/) | — | 🔲 planned |

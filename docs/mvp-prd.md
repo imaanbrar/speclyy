@@ -31,18 +31,18 @@ Enable a designer to spec a high-end residential project by **searching a truste
 ## 4) Inventory coverage (deliberately narrow)
 We will not cover everything in MVP. We’ll be “complete within a slice” so search feels trustworthy.
 
-**Launch markets**
-- Los Angeles
-- New York
-- Dallas (Texas)
-- Calgary
+**Designer markets**
+- Designers can be based in any city worldwide. Onboarding uses IP-detected city + global search (see [ADR-0020](architecture/adr/0020-onboarding-market-global-cities.md)). No preset list of "supported markets."
+
+**Local supplier coverage at launch**
+- The curated *local-supplier* slice ships seeded for a small set of cities we've indexed (initial focus: Los Angeles, New York, Dallas, Calgary). Designers in any other city still get the global brand catalog and full URL/manual entry — they just don't see local-only items in search until coverage expands.
 
 **Global brands in MVP**
 - Plumbing: Delta, Brizo, Kohler
 - Paint: Sherwin-Williams, Benjamin Moore
 
 **Local suppliers**
-- Curated list per market (seeded manually)
+- Curated list per seeded city (seeded manually). Tagged via `global_products.markets` and surfaced when a designer's `profiles.market` matches.
 
 **Fallback**
 - If it’s not in the library, designer can add via URL/manual (no blocking).

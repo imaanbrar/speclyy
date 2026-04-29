@@ -189,7 +189,7 @@ Screen references match `screen-inventory.md`.
   → Enter studio name → Next
 
 [2.3 Onboarding — Market]
-  → Select market (LA / NY / Dallas / Calgary) → Finish
+  → Confirm detected city (IP-based) OR search any city worldwide → Continue
 
 [3.1 Projects List]
   → Empty state: "Create your first project"

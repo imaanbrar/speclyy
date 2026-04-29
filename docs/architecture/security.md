@@ -73,11 +73,10 @@ Out of scope: nation-state attacks, physical access, supply-chain compromise of 
 
 | Secret | Dev | Production |
 |---|---|---|
-| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` | Vercel env (server-only) |
+| `SUPABASE_SECRET_KEY` | `.env.local` | Vercel env (server-only) |
 | `STRIPE_SECRET_KEY` | `.env.local` | Vercel env (server-only) |
 | `STRIPE_WEBHOOK_SECRET` | `.env.local` | Vercel env (server-only) |
 | `INNGEST_SIGNING_KEY` | `.env.local` | Vercel env (server-only) |
-| `DATABASE_URL` | `.env.local` | Vercel env (server-only) |
 | `ADMIN_SECRET` | `.env.local` | Vercel env (server-only) |
 | `ANTHROPIC_API_KEY` | Fly secret | Fly secret |
 
@@ -92,9 +91,9 @@ Out of scope: nation-state attacks, physical access, supply-chain compromise of 
 
 ### No secrets in client bundles
 
-Any import of `SUPABASE_SERVICE_ROLE_KEY` or `STRIPE_SECRET_KEY` in a file that could be included in the browser bundle (client components, `use client` files) is a critical bug. Enforcement:
+Any import of `SUPABASE_SECRET_KEY` or `STRIPE_SECRET_KEY` in a file that could be included in the browser bundle (client components, `use client` files) is a critical bug. Enforcement:
 
-- ESLint rule (planned): flag `process.env.SUPABASE_SERVICE_ROLE_KEY` in client component files.
+- ESLint rule (planned): flag `process.env.SUPABASE_SECRET_KEY` in client component files.
 - Manual review gate on PRs touching auth or billing.
 
 ---
@@ -112,7 +111,7 @@ The service-role key bypasses Postgres RLS entirely. It must only be used where 
 
 All other routes use the anon key with JWT — RLS is enforced automatically.
 
-The Drizzle client initialised with the service-role connection string (`DATABASE_URL`) must only be instantiated in Route Handler files, never in RSC or Server Action files where the anon/JWT client is correct.
+If a Drizzle client is ever wired up against the project's direct Postgres connection (currently not in use — see [ADR-0021](adr/0021-single-supabase-project.md)), it must only be instantiated in Route Handler files, never in RSC or Server Action files where the Supabase JWT client is correct.
 
 ---
 
