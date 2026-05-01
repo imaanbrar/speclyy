@@ -56,11 +56,11 @@ flowchart TB
   subgraph MB["apps/moodboard (Vercel)"]
     Page[RSC shell\nfetches board + parents + comments]
     SA[Server Actions\nsaveBoard / addItem / addComment\nuploadAsset / createShareLink / export]
-    RH[Route Handlers\n/share/[token] (public read)\n/api/render (PNG/PDF)]
+    RH["Route Handlers\n/share/[token] (public read)\n/api/render (PNG/PDF)"]
   end
 
   subgraph Web["apps/web (existing app)"]
-    Project[/projects/[id] page\ndeep-links to board/]
+    Project["/projects/[id] page\ndeep-links to board"]
     SpecSheet[Spec sheet PDF\nreads board_items]
   end
 
