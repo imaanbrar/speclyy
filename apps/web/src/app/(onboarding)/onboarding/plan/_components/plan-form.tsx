@@ -6,26 +6,21 @@ import { ArrowLeft, ArrowRight, Check } from '@speclyy/design-system/icons'
 import { continueOnboarding, type PlanActionState } from '../actions'
 
 type Plan = 'free' | 'pro'
-type Interval = 'monthly' | 'annual'
-
-const PRO_DISPLAY = {
-  monthly: { amount: '$37', note: 'Billed monthly' },
-  annual: { amount: '$29', note: 'Billed annually · Save 30%' },
-} as const
 
 export function PlanForm() {
   const [plan, setPlan] = useState<Plan>('free')
-  const [interval, setInterval] = useState<Interval>('annual')
 
-  const [state, formAction, pending] = useActionState<PlanActionState, FormData>(continueOnboarding, {})
+  const [state, formAction, pending] = useActionState<PlanActionState, FormData>(
+    continueOnboarding,
+    {},
+  )
   const errors = state.errors ?? {}
 
-  const ctaLabel = plan === 'free' ? 'Continue with Free' : 'Continue with Pro'
+  const ctaLabel = plan === 'free' ? 'Continue with Free' : 'Select Pro plan'
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="plan" value={plan} />
-      <input type="hidden" name="interval" value={interval} />
 
       <div role="radiogroup" aria-label="Choose a plan" className="flex flex-col gap-4">
         <PlanCard
@@ -39,31 +34,17 @@ export function PlanForm() {
         <PlanCard
           selected={plan === 'pro'}
           onSelect={() => setPlan('pro')}
-          title={
-            <span className="flex items-center gap-3">
-              Pro
-              <span
-                className="pill"
-                style={{ background: 'var(--terracotta-50)', color: 'var(--terracotta-700)' }}
-              >
-                SAVE 30% ANNUAL
-              </span>
-            </span>
-          }
+          title="Pro"
           price={
             <>
-              <span className="font-display text-40 leading-none">{PRO_DISPLAY[interval].amount}</span>
-              <span className="caption"> /mo · {PRO_DISPLAY[interval].note}</span>
+              <span className="caption block" style={{ opacity: 0.7 }}>Starting from</span>
+              <span className="font-display text-40 leading-none">$29</span>
+              <span className="caption"> /mo</span>
             </>
           }
-          body="Everything in Free — plus unlimited PDF spec sheets and shareable client links."
+          body="Everything in Free — plus unlimited PDF spec sheets and shareable client links. Pick monthly or annual at checkout."
           accent
-        >
-          <div role="radiogroup" aria-label="Pro billing interval" className="flex items-center gap-2 mt-5">
-            <IntervalToggle value="annual" active={interval === 'annual'} onChange={setInterval} label="Annual" />
-            <IntervalToggle value="monthly" active={interval === 'monthly'} onChange={setInterval} label="Monthly" />
-          </div>
-        </PlanCard>
+        />
       </div>
 
       <p className="caption mt-2" style={{ color: 'var(--fg-3)' }}>
@@ -95,7 +76,6 @@ function PlanCard({
   price,
   body,
   accent,
-  children,
 }: {
   selected: boolean
   onSelect: () => void
@@ -103,7 +83,6 @@ function PlanCard({
   price: React.ReactNode
   body: string
   accent?: boolean
-  children?: React.ReactNode
 }) {
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === ' ' || e.key === 'Enter') {
@@ -156,39 +135,6 @@ function PlanCard({
         </div>
         <div className="text-right shrink-0">{price}</div>
       </div>
-      {children}
     </div>
-  )
-}
-
-function IntervalToggle({
-  value,
-  active,
-  onChange,
-  label,
-}: {
-  value: Interval
-  active: boolean
-  onChange: (v: Interval) => void
-  label: string
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={(e) => {
-        e.stopPropagation()
-        onChange(value)
-      }}
-      className="btn btn-sm"
-      style={{
-        background: active ? 'var(--paper-50)' : 'transparent',
-        color: active ? 'var(--ink-900)' : 'var(--paper-50)',
-        border: '1px solid rgba(250, 247, 242, 0.32)',
-      }}
-    >
-      {label}
-    </button>
   )
 }

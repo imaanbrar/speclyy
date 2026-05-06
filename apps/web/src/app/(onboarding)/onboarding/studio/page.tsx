@@ -1,21 +1,23 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '@speclyy/auth/server'
+import { getUserIdFromHeaders } from '@speclyy/auth/headers'
 import { OnboardingShell } from '../../_components/shell'
 import { StudioForm } from './_components/studio-form'
 
 export default async function OnboardingStudioPage() {
+  // Middleware already validated and set `x-speclyy-user-id` — read from
+  // there instead of doing a second auth.getUser() round-trip (~110ms).
+  const userId = await getUserIdFromHeaders()
+  if (!userId) redirect('/sign-in')
+
   const supabase = await createServerSupabase()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/sign-in')
 
   // Pull any prior studio data so the form pre-fills on revisit. Joins
   // organization_members → organizations to find the user's existing org.
   const { data: member } = await supabase
     .from('organization_members')
     .select('organization_id, organizations(name, type, size)')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle()
 
   const org = (member as unknown as { organizations?: { name: string; type: string; size: string | null } } | null)?.organizations

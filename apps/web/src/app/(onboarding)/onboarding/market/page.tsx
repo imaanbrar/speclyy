@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '@speclyy/auth/server'
+import { getUserIdFromHeaders } from '@speclyy/auth/headers'
 import { OnboardingShell } from '../../_components/shell'
 import { MarketPicker } from './_components/market-picker'
 import { buildCityLabel } from './_lib/city-label'
@@ -29,16 +30,16 @@ async function detectMarket(): Promise<string | null> {
 }
 
 export default async function OnboardingMarketPage() {
-  const supabase = await createServerSupabase()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/sign-in')
+  // Middleware already validated and set `x-speclyy-user-id` — read from
+  // there instead of doing a second auth.getUser() round-trip (~110ms).
+  const userId = await getUserIdFromHeaders()
+  if (!userId) redirect('/sign-in')
 
+  const supabase = await createServerSupabase()
   const { data: profile } = await supabase
     .from('profiles')
     .select('market')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle()
 
   const detectedLabel = await detectMarket()

@@ -11,6 +11,7 @@
     "./server": "./src/server.ts",
     "./browser": "./src/browser.ts",
     "./middleware": "./src/middleware.ts",
+    "./headers": "./src/headers.ts",
     "./redirect": "./src/redirect.ts",
     "./service-role": "./src/service-role.ts"
   },
