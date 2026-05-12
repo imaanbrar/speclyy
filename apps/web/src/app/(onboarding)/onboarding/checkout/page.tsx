@@ -1,26 +1,82 @@
+import { redirect } from 'next/navigation'
+import { createServerSupabase } from '@speclyy/auth/server'
+import { getUserIdFromHeaders } from '@speclyy/auth/headers'
+
+import { resolvePlan, type Interval } from '@/lib/billing/plans'
+
 import { OnboardingShell } from '../../_components/shell'
+import { CheckoutForm, type PlanSummary } from './_components/checkout-form'
+
+interface PageProps {
+  searchParams: Promise<{ interval?: string }>
+}
 
 /**
- * Stub for Pro checkout. The billing group (TASK-BILL-04) replaces this with
- * an embedded Stripe Elements page. Until then, picking Pro on /onboarding/plan
- * lands here so the route doesn't 404 — the user can step Back to switch to
- * Free without losing the rest of their onboarding state.
+ * `/onboarding/checkout` — interval picker + embedded Stripe Elements.
+ *
+ * Render preconditions, in order — earliest redirect wins:
+ *
+ *   1. Authenticated. No user → /sign-in.
+ *   2. Not already Pro. Active sub → /projects (avoids a double-charge path
+ *      on a stale tab that bypassed the plan-screen guard).
+ *
+ * The Stripe subscription is **not** created here. Elements is mounted in
+ * deferred mode (`mode: 'subscription'`, `amount`, `currency`) and the
+ * subscription is created server-side from `actions.ts` only after the user
+ * clicks "Pay". This means interval toggles on this page are pure client
+ * state — no Stripe round-trip per toggle, no orphan `incomplete` subs.
+ *
+ * `?interval=` is read for the initial pick (default annual). The picker
+ * lets the user switch on the page itself; URL is kept in sync via
+ * `router.replace` for reload-resilience.
+ *
+ * See:
+ *   - docs/architecture/billing.md § "Checkout flow"
+ *   - docs/architecture/adr/0018-payment-surface.md — embedded Elements
  */
-export default function OnboardingCheckoutPage() {
+export default async function OnboardingCheckoutPage({ searchParams }: PageProps) {
+  const userId = await getUserIdFromHeaders()
+  if (!userId) redirect('/sign-in')
+
+  const supabase = await createServerSupabase()
+  const { data: existing } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (existing?.status === 'active') redirect('/projects')
+
+  const { interval: intervalRaw } = await searchParams
+  const initialInterval: Interval = intervalRaw === 'monthly' ? 'monthly' : 'annual'
+
+  const plans: Record<Interval, PlanSummary> = {
+    annual: toSummary(resolvePlan('annual')),
+    monthly: toSummary(resolvePlan('monthly')),
+  }
+
   return (
     <OnboardingShell
       step={4}
       eyebrow="Checkout"
       title={
         <>
-          Pro checkout <span className="italic-serif">coming soon.</span>
+          One last <span className="italic-serif">step.</span>
         </>
       }
-      description="We're wiring up the payment form. In the meantime, head back and start on Free — you can upgrade any time from Settings."
+      description="Pick your billing interval and add your card. Renews automatically — cancel any time from Settings."
     >
-      <div className="flex items-center gap-3">
-        <a href="/onboarding/plan" className="btn btn-ghost">← Back to plans</a>
-      </div>
+      <CheckoutForm initialInterval={initialInterval} plans={plans} />
     </OnboardingShell>
   )
+}
+
+function toSummary(plan: ReturnType<typeof resolvePlan>): PlanSummary {
+  return {
+    interval: plan.interval,
+    label: plan.label,
+    amount: plan.amount,
+    amountMonthlyEquivalent: plan.amountMonthlyEquivalent,
+    currency: plan.currency,
+    annualEquivalentLabel: plan.annualEquivalentLabel,
+  }
 }

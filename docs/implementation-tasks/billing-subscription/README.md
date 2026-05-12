@@ -8,7 +8,7 @@
 
 | ID | Title | Priority | Status | Est | Depends on |
 |----|-------|----------|--------|-----|------------|
-| [TASK-BILL-01](TASK-BILL-01-stripe-provisioning.md) | Stripe account + product seeding + env wiring | P0 | 🔜 ready | 2 | — |
+| [TASK-BILL-01](TASK-BILL-01-stripe-provisioning.md) | Stripe account + product seeding + env wiring | P0 | 🔜 ready | 3 | — |
 | [TASK-BILL-02](TASK-BILL-02-webhook-events-table.md) | Initial schema — `processed_webhook_events` | P0 | 🔜 ready | 1 | TASK-AUTH-02 |
 | [TASK-BILL-03](TASK-BILL-03-create-pro-subscription-action.md) | `createProSubscription` Server Action | P0 | 🔜 ready | 3 | TASK-BILL-01, TASK-BILL-02 |
 | [TASK-BILL-04](TASK-BILL-04-checkout-elements-page.md) | `/onboarding/checkout` — embedded Stripe Elements | P0 | 🔜 ready | 3 | TASK-BILL-03 |
@@ -18,7 +18,7 @@
 | [TASK-BILL-08](TASK-BILL-08-paywall-gate-and-modal.md) | Export paywall — `isPro` helper + blurred-preview modal | P0 | 🔜 ready | 3 | TASK-BILL-05 |
 | [TASK-BILL-09](TASK-BILL-09-cad-pricing-expansion.md) | CAD pricing expansion — multi-currency Pro plan | P1 | 📋 planned | 5 | TASK-BILL-01, TASK-BILL-03, TASK-BILL-04, TASK-ONB-05, TASK-AUTH-02 |
 
-**Total estimate:** 26 points (21 for US-only MVP + 5 for CAD expansion).
+**Total estimate:** 27 points (22 for US-only MVP code + 5 for CAD code wiring). Note: BILL-01 was bumped 2 → 3 when it absorbed all four price IDs, the Stripe Tax + W-8BEN-E setup, and the meatier provisioning runbook (Stage-1 deferrals callout, CRA prerequisite). The dashboard side is now consolidated into one trip to Stripe; BILL-09 is pure code + DB + UI.
 
 **E2E coverage** ships separately in [TASK-TEST-04 — Billing E2E suite](../testing/TASK-TEST-04-billing-e2e-suite.md).
 

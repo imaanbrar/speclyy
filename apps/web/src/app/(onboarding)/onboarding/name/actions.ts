@@ -33,28 +33,25 @@ export async function saveName(_prev: NameActionState, formData: FormData): Prom
   } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
 
-  const { error, count } = await supabase
+  // Upsert (not update) so this step also self-heals a missing profile row.
+  // The handle_new_user trigger creates the row at signup, so the INSERT
+  // path here only fires for the rare user created out-of-band (manual SQL
+  // insert, etc.). Replaces the per-page `ensureProfile()` call previously
+  // run from `(onboarding)/layout.tsx`.
+  const { error } = await supabase
     .from('profiles')
-    .update({ first_name, last_name, updated_at: new Date().toISOString() }, { count: 'exact' })
-    .eq('id', user.id)
+    .upsert(
+      { id: user.id, first_name, last_name, updated_at: new Date().toISOString() },
+      { onConflict: 'id' },
+    )
 
   if (error) {
-    console.error('[onboarding/name] profiles update failed', {
+    console.error('[onboarding/name] profiles upsert failed', {
       userId: user.id,
       code: error.code,
       message: error.message,
       details: error.details,
       hint: error.hint,
-    })
-    return {
-      errors: { form: "Couldn't save your name. Try again." },
-      values: { first_name, last_name },
-    }
-  }
-
-  if (count === 0) {
-    console.error('[onboarding/name] profiles update affected 0 rows — missing profile row?', {
-      userId: user.id,
     })
     return {
       errors: { form: "Couldn't save your name. Try again." },

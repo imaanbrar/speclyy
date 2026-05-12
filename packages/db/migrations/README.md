@@ -17,6 +17,7 @@ Until `drizzle-kit` is wired up, apply migrations manually in order:
 | 0001 | `0001_initial_schema.sql` | profiles / organizations / organization_members / subscriptions + `handle_new_user` trigger + baseline RLS policies. Idempotent — safe to re-run. |
 | 0002 | `0002_fix_organization_members_rls_recursion.sql` | Strips the self-referencing subquery from `organization_members: self read` (caused `ERROR: infinite recursion detected in policy`). Reads are now `user_id = auth.uid()` only; teammate visibility will land later via a SECURITY DEFINER helper. |
 | 0003 | `0003_organizations_creator_visibility_and_profiles_self_insert.sql` | Adds `organizations.created_by uuid DEFAULT auth.uid()` and a creator branch to the SELECT policy (lets `.insert(...).select('id')` pass `INSERT ... RETURNING` — the row is visible via creator before membership is wired). Adds `profiles: self insert` so the `ensureProfile` self-heal upsert isn't denied. |
+| 0004 | `0004_processed_webhook_events.sql` | Adds `public.processed_webhook_events (stripe_event_id text PK, processed_at timestamptz)` — the idempotency ledger for the Stripe webhook handler (TASK-BILL-02). RLS enabled with no policies; the handler runs under the service-role key. |
 
 ## Conventions
 

@@ -41,13 +41,19 @@ flowchart TD
 
 ### Plans
 
-| Plan | Stripe Price ID | Price | Features |
-|---|---|---|---|
-| Free | — (no Stripe record) | $0 | Full app access; PDF export gated (blurred preview) |
-| Pro Monthly | `price_xxx_monthly` | $37/month | Full access including PDF + shareable link export |
-| Pro Annual | `price_xxx_annual` | $29/month billed annually ($348/yr — 30% off) | Full access including PDF + shareable link export |
+Pro is offered in two billing intervals (monthly / annual) and two currencies (**USD / CAD**). All four resulting prices sit under a single Stripe **Speclyy Pro** product — adding new regions never creates new products, only new prices on the same product.
 
-> Price IDs are stored in env vars (`STRIPE_PRICE_ID_PRO_MONTHLY`, `STRIPE_PRICE_ID_PRO_ANNUAL`), not hardcoded. The interval selection is passed from the client to `createCheckoutSession` and resolved server-side.
+| Plan | Currency | Price | Stripe env var | Features |
+|---|---|---|---|---|
+| Free | — | $0 | — (no Stripe record) | Full app access; PDF export gated (blurred preview) |
+| Pro Monthly | USD | $37/mo | `STRIPE_PRICE_ID_PRO_MONTHLY_USD` | PDF + shareable link export |
+| Pro Annual | USD | $29/mo billed annually ($348/yr — ~22% off) | `STRIPE_PRICE_ID_PRO_ANNUAL_USD` | PDF + shareable link export |
+| Pro Monthly | CAD | CA$49/mo | `STRIPE_PRICE_ID_PRO_MONTHLY_CAD` | PDF + shareable link export |
+| Pro Annual | CAD | CA$39/mo billed annually (CA$468/yr — ~20% off) | `STRIPE_PRICE_ID_PRO_ANNUAL_CAD` | PDF + shareable link export |
+
+> CAD prices are **clean local numbers** — not FX-converted from USD. They stay stable regardless of exchange-rate drift. Future markets (INR, AED, etc.) follow the same pattern: new prices on the same product, never new products.
+>
+> Price IDs are read through a single `apps/web/src/lib/billing/plans.ts` module exposing a currency-keyed `PLANS[currency][interval]` map. Both `interval` (monthly/annual) and `currency` (USD/CAD) are passed from the client through `createProSubscription` and resolved server-side.
 
 ### Subscription states
 
@@ -63,6 +69,72 @@ Free users have no row in `subscriptions`. Pro users have a Stripe-backed row.
 | `incomplete_expired` | `incomplete_expired` | Blocked |
 
 The app-wide middleware gate is removed. Access control lives at the export action: if the user has no active subscription, the PDF render returns a blurred preview and an upgrade CTA instead of a download.
+
+The `subscriptions` table also carries a `currency text not null default 'USD'` column (`CHECK IN ('USD','CAD')`, extensible) recording the user's chosen currency at subscription time. Currency is fixed for the life of a subscription — switching requires cancel + re-subscribe.
+
+---
+
+## Currency & regional pricing
+
+### Supported currencies
+
+USD (default fallback) and CAD. The architecture supports adding more with no schema changes — a new currency is a new pair of price IDs in Stripe plus a new entry in the `PLANS` map.
+
+### Detection
+
+The plan screen detects a default currency server-side at first render:
+
+1. **Vercel geo header** — `x-vercel-ip-country` from edge: `CA` → CAD; anything else → USD.
+2. **`Accept-Language` fallback** — used when the geo header is absent (local dev). `en-CA` → CAD; otherwise USD.
+
+```ts
+// apps/web/src/lib/billing/detect-currency.ts
+export function detectDefaultCurrency(): 'USD' | 'CAD' {
+  const h = headers()
+  const country = h.get('x-vercel-ip-country')?.toUpperCase()
+  if (country === 'CA') return 'CAD'
+  if (country === 'US') return 'USD'
+  const lang = h.get('accept-language') ?? ''
+  return /\ben-CA\b/i.test(lang) ? 'CAD' : 'USD'
+}
+```
+
+### Override
+
+A 🇺🇸 USD / 🇨🇦 CAD segmented toggle on the plan screen lets the user override the detected default. The chosen currency is persisted in `sessionStorage` only — never cookies, since the next visitor on the same browser should re-detect from their own geo.
+
+### Server-side resolution
+
+`createProSubscription(interval, currency)` resolves the price via:
+
+```ts
+const { priceId } = PLANS[currency][interval]
+```
+
+The `currency` param is passed through Stripe Subscription metadata (`metadata: { userId, currency }`) so the webhook handler can persist it deterministically. Stripe's own `subscription.currency` is the fallback source if metadata is missing.
+
+### Billing-address validation
+
+After `confirmPayment`, before treating the subscription as successful:
+
+| Subscription currency | Required billing-address country |
+|---|---|
+| **CAD** | `CA` (strict — this is the discount-eligibility gate) |
+| **USD** | Any country (permissive — USD is the international fallback) |
+
+A mismatch (CAD selected, non-CA billing) cancels the incomplete subscription via `stripe.subscriptions.cancel(id)` and surfaces an inline error. No charge occurs.
+
+The strict gate only applies to CAD because the USD↔CAD spread is small (~30%) and USD is the universal fallback. Future markets with steeper PPP discounts (INR, AED) will require **card-issuer (BIN) country validation** in addition to billing address — see Open questions.
+
+### Stripe Tax
+
+`automatic_tax: { enabled: true }` is set on every Subscription create. For Canadian customers, Stripe Tax computes federal GST/HST and applicable provincial taxes (Ontario HST 13%, BC GST 5% + PST 7%, etc.) using the registered Canadian tax IDs in Stripe Tax → Registrations. Tax is line-itemed on the invoice; no app code formats it.
+
+US-state tax is not configured — defer until Speclyy crosses an economic-nexus threshold in any state.
+
+### Switching currencies post-subscription
+
+Not supported in-app or in the customer portal. Users cancel via the portal and re-subscribe with the new currency selected. The help-doc at [`/help/billing/changing-currency`](/help/billing/changing-currency) documents the flow and is linked from the account-settings billing CTA and the Pro Success screen.
 
 ---
 
@@ -81,7 +153,10 @@ Rendered inline using **Stripe Elements** — no redirect to Stripe's domain. Se
 ```ts
 // app/(billing)/billing/actions.ts
 'use server'
-export async function createProSubscription(interval: 'monthly' | 'annual') {
+export async function createProSubscription(
+  interval: 'monthly' | 'annual',
+  currency: 'USD' | 'CAD',
+) {
   const supabase = createServerClient(...)
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -98,17 +173,16 @@ export async function createProSubscription(interval: 'monthly' | 'annual') {
           metadata: { userId: user.id },
         })).id
 
-  const priceId = interval === 'annual'
-    ? process.env.STRIPE_PRICE_ID_PRO_ANNUAL
-    : process.env.STRIPE_PRICE_ID_PRO_MONTHLY
+  const { priceId } = PLANS[currency][interval]  // currency-keyed resolution
 
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [{ price: priceId }],
     payment_behavior: 'default_incomplete',
     payment_settings: { save_default_payment_method: 'on_subscription' },
+    automatic_tax: { enabled: true },                     // Stripe Tax (CA today, US-states later)
     expand: ['latest_invoice.payment_intent'],
-    metadata: { userId: user.id },
+    metadata: { userId: user.id, currency },              // currency persisted via metadata
   })
 
   const clientSecret = (subscription.latest_invoice as Stripe.Invoice)
@@ -173,7 +247,7 @@ export async function createPortalSession() {
 }
 ```
 
-Users can: cancel subscription, update payment method, view invoice history. Plan switching is disabled until multi-plan is supported.
+Users can: cancel subscription, update payment method, view invoice history. Plan switching is disabled until multi-plan is supported. **Currency switching is not supported in-portal** — the help-doc at [`/help/billing/changing-currency`](/help/billing/changing-currency) (linked from the account-settings billing CTA) explains the cancel-and-re-subscribe flow.
 
 All actions taken in the portal fire webhook events (`customer.subscription.updated`, `customer.subscription.deleted`) which reconcile the DB — no separate reconciliation needed.
 
@@ -234,12 +308,16 @@ On each incoming event: `INSERT ... ON CONFLICT DO NOTHING` returns `0 rows affe
 Stripe does not guarantee delivery order. All handlers are idempotent and use `updated_at`-guarded upserts:
 
 ```ts
+const currency =
+  (event.data.object.metadata?.currency as 'USD' | 'CAD' | undefined) ??
+  event.data.object.currency.toUpperCase()  // fallback to Stripe's denomination
+
 await db
   .insert(subscriptions)
-  .values({ userId, status, currentPeriodEnd, ... })
+  .values({ userId, status, currency, currentPeriodEnd, ... })
   .onConflictDoUpdate({
     target: subscriptions.userId,
-    set: { status, currentPeriodEnd, updatedAt: new Date() },
+    set: { status, currency, currentPeriodEnd, updatedAt: new Date() },
     where: sql`subscriptions.updated_at < ${new Date()}`,
   })
 ```
@@ -338,8 +416,11 @@ See [operations.md](operations.md) for the full observability setup.
 
 ## Open questions
 
-- **Stripe Tax** — not yet configured. Will need to enable before expanding to US states with SaaS tax requirements.
+- **Stripe Tax — US states.** Enabled and registered for Canada (CRA federal GST/HST + applicable provincial). Not yet configured for US-state nexus — defer until Speclyy crosses an economic-nexus threshold in any state, then register state-by-state.
+- **Card-issuer (BIN) country validation.** Deferred. Today, the CAD discount is gated only by billing-address country. The USD↔CAD spread is small enough that VPN/billing-address arbitrage isn't a meaningful threat. When introducing markets with deep PPP discounts (INR ~$10/mo, AED, etc.), add card-BIN country validation to the checkout flow as a second gate.
+- **Geo-detection accuracy.** Vercel's `x-vercel-ip-country` is the primary signal for currency default. If it misfires for users on cross-border ISPs, the on-screen toggle is the user-facing answer. Telemetry to confirm: log toggle-flip events with `{ detected, chosen }`; revisit detection if agreement drifts below ~95%.
 - **Plan switching (monthly ↔ annual)** — post-MVP. At MVP, designers pick an interval at checkout; changing interval requires canceling and re-subscribing via the customer portal.
+- **Currency switching post-subscription** — same cancel + re-subscribe pattern as plan switching; documented in `/help/billing/changing-currency`.
 - **Additional gated features** — shareable link export is gated at the action level, same pattern as PDF export.
 - **Team / seat billing** — not in scope for MVP.
 

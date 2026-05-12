@@ -11,14 +11,16 @@ export interface PlanActionState {
  * Free path: stamps `profiles.onboarding_completed_at` (guarded so a double
  * submit doesn't bump the timestamp) and lands the user on the welcome screen.
  *
- * Pro path: routed to `/onboarding/checkout` — that page (TASK-BILL-04) owns
- * `createProSubscription` and calls `completeOnboarding` only on success.
- * Returning here from a half-finished Stripe session leaves the user able to
- * complete onboarding on Free.
+ * Pro path: redirects to `/onboarding/checkout`. The Stripe subscription is
+ * created on the checkout page when the user clicks "Pay" — keeps the plan
+ * step a pure UI choice and avoids leaving orphan `incomplete` subscriptions
+ * in Stripe when users bounce or change their mind on interval.
  */
-export async function continueOnboarding(_prev: PlanActionState, formData: FormData): Promise<PlanActionState> {
+export async function continueOnboarding(
+  _prev: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
   const plan = String(formData.get('plan') ?? 'free')
-  const interval = String(formData.get('interval') ?? 'annual')
 
   const supabase = await createServerSupabase()
   const {
@@ -27,12 +29,9 @@ export async function continueOnboarding(_prev: PlanActionState, formData: FormD
   if (!user) redirect('/sign-in')
 
   if (plan === 'pro') {
-    // Hand off to the billing group. Until TASK-BILL-04 lands, the route
-    // renders a placeholder. The interval is forwarded so billing can read it.
-    redirect(`/onboarding/checkout?interval=${encodeURIComponent(interval)}`)
+    redirect('/onboarding/checkout')
   }
 
-  // Free path — guarded write so a double-click can't produce two timestamps.
   const { error } = await supabase
     .from('profiles')
     .update({ onboarding_completed_at: new Date().toISOString() })

@@ -16,17 +16,28 @@ out/
 .env.*.local
 .env.test
 
+# E2E test-user credentials and session cookies — see
+# docs/operations/e2e-test-user.md and apps/web/scripts/test-user/.
+.test-user.local.json
+.test-cookies.txt
+
 # Playwright
 /test-results/
 /playwright-report/
+/playwright-report-billing/
 /playwright/.cache/
+e2e/.tmp/
+apps/web/.env.local.e2e-bak
 
-# Editors
+# Editors / coding agents
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
+# Claude Code's local working dir (settings, worktrees, transcripts) —
+# never commit; it's user-machine-local.
+.claude/
 
 # Logs
 *.log
