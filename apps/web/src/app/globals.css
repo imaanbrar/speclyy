@@ -7,3 +7,54 @@
 @layer base {
   * { -webkit-tap-highlight-color: transparent; }
 }
+
+/* ============================================================
+   Keyframes used by the New Project wizard, its modals, and
+   the floor-plan + Pinterest staged animations. Names are
+   scoped (`speclyy-*`) so they can't collide with Tailwind or
+   third-party rules. Floor-plan scan translates 440px because
+   that matches the modal's scrollable canvas height.
+   ============================================================ */
+@keyframes speclyy-spin { to { transform: rotate(360deg); } }
+
+@keyframes speclyy-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes speclyy-pulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  50%  { transform: scale(1.08); opacity: .55; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes speclyy-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes speclyy-modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+@keyframes speclyy-summary-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes speclyy-scan {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(440px); }
+}
+
+@keyframes speclyy-pin-fly {
+  0%   { transform: translate(0, 0) scale(.6) rotate(-8deg); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(var(--pin-tx, 160px), var(--pin-ty, 0)) scale(.95) rotate(2deg); opacity: 1; }
+}
+
+@keyframes speclyy-pin-land {
+  from { transform: scale(.7); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
